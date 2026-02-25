@@ -62,6 +62,9 @@ class CADViewerWindow(QMainWindow):
         # Connect toolbar signals to viewer
         self._connect_signals()
 
+        # Set initial display mode to match toolbar state
+        self.viewer.set_display_mode(DisplayMode.SHADED)
+
         # Load example shapes automatically
         self.load_example_shapes()
 
