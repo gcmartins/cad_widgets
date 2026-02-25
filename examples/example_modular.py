@@ -5,6 +5,10 @@ Shows various 3D shapes with a clean, modular architecture
 
 import os
 import sys
+
+# Add src to path for development
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 os.environ['QT_LOGGING_RULES'] = 'qt.qpa.theme.gnome=false'
 
 from PySide6.QtWidgets import (
@@ -13,20 +17,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from ocp_widget import OCPWidget
-from view_toolbar import ViewToolbar
+from cad_widgets import OCPWidget, ViewToolbar
+from cad_widgets.utils import create_box, create_sphere, create_cylinder, create_cone, create_torus, translate_shape
 
-# OCP imports for creating shapes
-from OCP.BRepPrimAPI import (
-    BRepPrimAPI_MakeBox,
-    BRepPrimAPI_MakeSphere,
-    BRepPrimAPI_MakeCylinder,
-    BRepPrimAPI_MakeCone,
-    BRepPrimAPI_MakeTorus,
-)
-from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir, gp_Vec
-from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
-from OCP.gp import gp_Trsf
+from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
 
 
 class CADViewerWindow(QMainWindow):
@@ -114,45 +108,38 @@ class CADViewerWindow(QMainWindow):
         # Clear existing shapes
         self.viewer.erase_all()
 
-        # Create and display various shapes
+        # Create and display various shapes using utility functions
         
         # 1. Box at origin
-        box = BRepPrimAPI_MakeBox(50, 50, 50).Shape()
+        box = create_box(50, 50, 50)
         self.viewer.display_shape(box, color=(0.7, 0.2, 0.2), update=False)
 
         # 2. Sphere
-        sphere = BRepPrimAPI_MakeSphere(30).Shape()
-        sphere_translated = self.translate_shape(sphere, 100, 0, 25)
+        sphere = create_sphere(30)
+        sphere_translated = translate_shape(sphere, 100, 0, 25)
         self.viewer.display_shape(sphere_translated, color=(0.2, 0.7, 0.2), update=False)
 
         # 3. Cylinder
         axis = gp_Ax2(gp_Pnt(0, 100, 0), gp_Dir(0, 0, 1))
-        cylinder = BRepPrimAPI_MakeCylinder(axis, 20, 60).Shape()
+        cylinder = create_cylinder(20, 60, axis)
         self.viewer.display_shape(cylinder, color=(0.2, 0.2, 0.7), update=False)
 
         # 4. Cone
         cone_axis = gp_Ax2(gp_Pnt(100, 100, 0), gp_Dir(0, 0, 1))
-        cone = BRepPrimAPI_MakeCone(cone_axis, 30, 5, 70).Shape()
+        cone = create_cone(30, 5, 70, cone_axis)
         self.viewer.display_shape(cone, color=(0.7, 0.7, 0.2), update=False)
 
         # 5. Torus
         torus_axis = gp_Ax2(gp_Pnt(-80, 0, 30), gp_Dir(0, 1, 0))
-        torus = BRepPrimAPI_MakeTorus(torus_axis, 25, 10).Shape()
+        torus = create_torus(25, 10, torus_axis)
         self.viewer.display_shape(torus, color=(0.7, 0.2, 0.7), update=False)
 
         # 6. Transparent box
-        box2 = BRepPrimAPI_MakeBox(gp_Pnt(-80, -80, 0), 40, 40, 80).Shape()
+        box2 = create_box(40, 40, 80, gp_Pnt(-80, -80, 0))
         self.viewer.display_shape(box2, color=(0.2, 0.7, 0.7), transparency=0.6, update=False)
 
         # Fit all shapes in view
         self.viewer.fit_all()
-
-    def translate_shape(self, shape, dx, dy, dz):
-        """Translate a shape by the given offset."""
-        transform = gp_Trsf()
-        transform.SetTranslation(gp_Vec(dx, dy, dz))
-        transformed = BRepBuilderAPI_Transform(shape, transform).Shape()
-        return transformed
 
 
 def main():
