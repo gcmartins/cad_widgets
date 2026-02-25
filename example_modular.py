@@ -1,0 +1,170 @@
+"""
+Example application demonstrating modular OCP widget with ViewToolbar
+Shows various 3D shapes with a clean, modular architecture
+"""
+
+import os
+import sys
+os.environ['QT_LOGGING_RULES'] = 'qt.qpa.theme.gnome=false'
+
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, 
+    QHBoxLayout, QPushButton, QLabel, QSplitter
+)
+from PySide6.QtCore import Qt
+
+from ocp_widget import OCPWidget
+from view_toolbar import ViewToolbar
+
+# OCP imports for creating shapes
+from OCP.BRepPrimAPI import (
+    BRepPrimAPI_MakeBox,
+    BRepPrimAPI_MakeSphere,
+    BRepPrimAPI_MakeCylinder,
+    BRepPrimAPI_MakeCone,
+    BRepPrimAPI_MakeTorus,
+)
+from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir, gp_Vec
+from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
+from OCP.gp import gp_Trsf
+
+
+class CADViewerWindow(QMainWindow):
+    """Main window for the CAD viewer example using modular components."""
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("OCP PySide6 3D Viewer - Modular Example")
+        self.setGeometry(100, 100, 1200, 700)
+
+        # Create central widget
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+
+        # Title
+        title_label = QLabel("OCP OpenCascade 3D Viewer - Modular Architecture")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px;")
+        title_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(title_label)
+
+        # Create splitter for viewer and toolbar
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Create the OCP widget
+        self.viewer = OCPWidget()
+        splitter.addWidget(self.viewer)
+        
+        # Create the view toolbar (vertical orientation)
+        self.toolbar = ViewToolbar(orientation='vertical')
+        splitter.addWidget(self.toolbar)
+        
+        # Set splitter sizes (viewer takes most space)
+        splitter.setSizes([900, 300])
+        
+        main_layout.addWidget(splitter)
+
+        # Bottom control panel
+        bottom_panel = self._create_bottom_panel()
+        main_layout.addWidget(bottom_panel)
+
+        # Connect toolbar signals to viewer
+        self._connect_signals()
+
+        # Load example shapes automatically
+        self.load_example_shapes()
+
+    def _create_bottom_panel(self):
+        """Create the bottom control panel."""
+        panel = QWidget()
+        layout = QHBoxLayout(panel)
+        
+        # Info label
+        info_label = QLabel("🖱️ Left Click: Rotate | Middle Click: Pan | Scroll: Zoom")
+        info_label.setStyleSheet("padding: 5px; color: #555;")
+        layout.addWidget(info_label)
+        
+        layout.addStretch()
+        
+        # Load example button
+        btn_example = QPushButton("Load Example Shapes")
+        btn_example.setStyleSheet("padding: 8px 16px; font-weight: bold;")
+        btn_example.clicked.connect(self.load_example_shapes)
+        layout.addWidget(btn_example)
+        
+        return panel
+    
+    def _connect_signals(self):
+        """Connect toolbar signals to viewer methods."""
+        # Connect projection changes
+        self.toolbar.projection_changed.connect(self.viewer.set_projection)
+        
+        # Connect projection type changes
+        self.toolbar.projection_type_changed.connect(self.viewer.set_projection_type)
+        
+        # Connect display mode changes
+        self.toolbar.display_mode_changed.connect(self.viewer.set_display_mode)
+        
+        # Connect actions
+        self.toolbar.fit_all_requested.connect(self.viewer.fit_all)
+        self.toolbar.clear_requested.connect(self.viewer.erase_all)
+
+    def load_example_shapes(self):
+        """Load example 3D shapes into the viewer."""
+        # Clear existing shapes
+        self.viewer.erase_all()
+
+        # Create and display various shapes
+        
+        # 1. Box at origin
+        box = BRepPrimAPI_MakeBox(50, 50, 50).Shape()
+        self.viewer.display_shape(box, color=(0.7, 0.2, 0.2), update=False)
+
+        # 2. Sphere
+        sphere = BRepPrimAPI_MakeSphere(30).Shape()
+        sphere_translated = self.translate_shape(sphere, 100, 0, 25)
+        self.viewer.display_shape(sphere_translated, color=(0.2, 0.7, 0.2), update=False)
+
+        # 3. Cylinder
+        axis = gp_Ax2(gp_Pnt(0, 100, 0), gp_Dir(0, 0, 1))
+        cylinder = BRepPrimAPI_MakeCylinder(axis, 20, 60).Shape()
+        self.viewer.display_shape(cylinder, color=(0.2, 0.2, 0.7), update=False)
+
+        # 4. Cone
+        cone_axis = gp_Ax2(gp_Pnt(100, 100, 0), gp_Dir(0, 0, 1))
+        cone = BRepPrimAPI_MakeCone(cone_axis, 30, 5, 70).Shape()
+        self.viewer.display_shape(cone, color=(0.7, 0.7, 0.2), update=False)
+
+        # 5. Torus
+        torus_axis = gp_Ax2(gp_Pnt(-80, 0, 30), gp_Dir(0, 1, 0))
+        torus = BRepPrimAPI_MakeTorus(torus_axis, 25, 10).Shape()
+        self.viewer.display_shape(torus, color=(0.7, 0.2, 0.7), update=False)
+
+        # 6. Transparent box
+        box2 = BRepPrimAPI_MakeBox(gp_Pnt(-80, -80, 0), 40, 40, 80).Shape()
+        self.viewer.display_shape(box2, color=(0.2, 0.7, 0.7), transparency=0.6, update=False)
+
+        # Fit all shapes in view
+        self.viewer.fit_all()
+
+    def translate_shape(self, shape, dx, dy, dz):
+        """Translate a shape by the given offset."""
+        transform = gp_Trsf()
+        transform.SetTranslation(gp_Vec(dx, dy, dz))
+        transformed = BRepBuilderAPI_Transform(shape, transform).Shape()
+        return transformed
+
+
+def main():
+    """Main entry point for the application."""
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    
+    window = CADViewerWindow()
+    window.show()
+    
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()
