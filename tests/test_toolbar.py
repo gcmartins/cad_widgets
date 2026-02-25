@@ -3,15 +3,12 @@ Tests for ViewToolbar component
 """
 
 import sys
-import os
-
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import pytest
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 from cad_widgets.widgets.view_toolbar import ViewToolbar
+from cad_widgets import ViewDirection, ProjectionType, DisplayMode
 
 
 @pytest.fixture(scope="session")
@@ -51,10 +48,10 @@ def test_set_projection_type(qapp):
     """Test setting projection type programmatically."""
     toolbar = ViewToolbar()
     
-    toolbar.set_projection_type('orthographic')
+    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
     assert toolbar.get_projection_type() == 'orthographic'
     
-    toolbar.set_projection_type('perspective')
+    toolbar.set_projection_type(ProjectionType.PERSPECTIVE)
     assert toolbar.get_projection_type() == 'perspective'
 
 
@@ -62,10 +59,10 @@ def test_set_display_mode(qapp):
     """Test setting display mode programmatically."""
     toolbar = ViewToolbar()
     
-    toolbar.set_display_mode('wireframe')
+    toolbar.set_display_mode(DisplayMode.WIREFRAME)
     assert toolbar.get_display_mode() == 'wireframe'
     
-    toolbar.set_display_mode('shaded')
+    toolbar.set_display_mode(DisplayMode.SHADED)
     assert toolbar.get_display_mode() == 'shaded'
 
 
@@ -77,9 +74,9 @@ def test_projection_changed_signal(qapp):
     toolbar.projection_changed.connect(lambda proj: received_signals.append(proj))
     
     # Simulate button clicks by calling the internal method
-    toolbar._on_projection_changed('iso')
-    toolbar._on_projection_changed('top')
-    toolbar._on_projection_changed('front')
+    toolbar._on_projection_changed(ViewDirection.ISO)
+    toolbar._on_projection_changed(ViewDirection.TOP)
+    toolbar._on_projection_changed(ViewDirection.FRONT)
     
     assert len(received_signals) == 3
     assert received_signals == ['iso', 'top', 'front']
@@ -92,7 +89,7 @@ def test_projection_type_changed_signal(qapp):
     received_signals = []
     toolbar.projection_type_changed.connect(lambda ptype: received_signals.append(ptype))
     
-    toolbar.set_projection_type('orthographic')
+    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
     
     # Should have received the signal
     assert 'orthographic' in received_signals
@@ -105,7 +102,7 @@ def test_display_mode_changed_signal(qapp):
     received_signals = []
     toolbar.display_mode_changed.connect(lambda mode: received_signals.append(mode))
     
-    toolbar.set_display_mode('wireframe')
+    toolbar.set_display_mode(DisplayMode.WIREFRAME)
     
     # Should have received the signal
     assert 'wireframe' in received_signals
@@ -148,9 +145,9 @@ def test_multiple_signal_connections(qapp):
     toolbar.clear_requested.connect(lambda: events.append(('clear', None)))
     
     # Trigger various events
-    toolbar._on_projection_changed('iso')
-    toolbar.set_projection_type('orthographic')
-    toolbar.set_display_mode('wireframe')
+    toolbar._on_projection_changed(ViewDirection.ISO)
+    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
+    toolbar.set_display_mode(DisplayMode.WIREFRAME)
     toolbar._on_fit_all_requested()
     toolbar._on_clear_requested()
     
@@ -162,11 +159,11 @@ def test_multiple_signal_connections(qapp):
 
 
 def test_case_insensitive_setters(qapp):
-    """Test that setters work with different case."""
+    """Test that setters work with enum values."""
     toolbar = ViewToolbar()
     
-    toolbar.set_projection_type('ORTHOGRAPHIC')
+    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
     assert toolbar.get_projection_type() == 'orthographic'
     
-    toolbar.set_display_mode('WIREFRAME')
+    toolbar.set_display_mode(DisplayMode.WIREFRAME)
     assert toolbar.get_display_mode() == 'wireframe'

@@ -6,9 +6,6 @@ Displays a single red box
 import os
 import sys
 
-# Add src to path for development
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 os.environ['QT_LOGGING_RULES'] = 'qt.qpa.theme.gnome=false'
 
 from PySide6.QtWidgets import QApplication

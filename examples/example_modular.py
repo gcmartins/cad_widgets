@@ -6,9 +6,6 @@ Shows various 3D shapes with a clean, modular architecture
 import os
 import sys
 
-# Add src to path for development
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 os.environ['QT_LOGGING_RULES'] = 'qt.qpa.theme.gnome=false'
 
 from PySide6.QtWidgets import (
@@ -17,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from cad_widgets import OCPWidget, ViewToolbar
+from cad_widgets import OCPWidget, ViewToolbar, ViewDirection, ProjectionType, DisplayMode
 from cad_widgets.utils import create_box, create_sphere, create_cylinder, create_cone, create_torus, translate_shape
 
 from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
@@ -90,14 +87,20 @@ class CADViewerWindow(QMainWindow):
     
     def _connect_signals(self):
         """Connect toolbar signals to viewer methods."""
-        # Connect projection changes
-        self.toolbar.projection_changed.connect(self.viewer.set_projection)
+        # Connect projection changes (convert string to enum)
+        self.toolbar.projection_changed.connect(
+            lambda direction_str: self.viewer.set_projection(ViewDirection(direction_str))
+        )
         
-        # Connect projection type changes
-        self.toolbar.projection_type_changed.connect(self.viewer.set_projection_type)
+        # Connect projection type changes (convert string to enum)
+        self.toolbar.projection_type_changed.connect(
+            lambda proj_type_str: self.viewer.set_projection_type(ProjectionType(proj_type_str))
+        )
         
-        # Connect display mode changes
-        self.toolbar.display_mode_changed.connect(self.viewer.set_display_mode)
+        # Connect display mode changes (convert string to enum)
+        self.toolbar.display_mode_changed.connect(
+            lambda mode_str: self.viewer.set_display_mode(DisplayMode(mode_str))
+        )
         
         # Connect actions
         self.toolbar.fit_all_requested.connect(self.viewer.fit_all)

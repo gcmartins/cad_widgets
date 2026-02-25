@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
+from .enums import ViewDirection, ProjectionType, DisplayMode
+
 
 class ViewToolbar(QWidget):
     """
@@ -97,18 +99,18 @@ class ViewToolbar(QWidget):
         self._proj_type_btn_group = QButtonGroup(self)
         
         # Perspective radio button
-        perspective_btn = QRadioButton("Perspective")
+        perspective_btn = QRadioButton(ProjectionType.PERSPECTIVE.value.capitalize())
         perspective_btn.setChecked(True)
         perspective_btn.toggled.connect(
-            lambda checked: self._on_projection_type_changed('perspective') if checked else None
+            lambda checked: self._on_projection_type_changed(ProjectionType.PERSPECTIVE) if checked else None
         )
         self._proj_type_btn_group.addButton(perspective_btn)
         layout.addWidget(perspective_btn)
         
         # Orthographic radio button
-        ortho_btn = QRadioButton("Orthographic")
+        ortho_btn = QRadioButton(ProjectionType.ORTHOGRAPHIC.value.capitalize())
         ortho_btn.toggled.connect(
-            lambda checked: self._on_projection_type_changed('orthographic') if checked else None
+            lambda checked: self._on_projection_type_changed(ProjectionType.ORTHOGRAPHIC) if checked else None
         )
         self._proj_type_btn_group.addButton(ortho_btn)
         layout.addWidget(ortho_btn)
@@ -124,18 +126,18 @@ class ViewToolbar(QWidget):
         self._display_mode_btn_group = QButtonGroup(self)
         
         # Shaded radio button
-        shaded_btn = QRadioButton("Shaded")
+        shaded_btn = QRadioButton(DisplayMode.SHADED.value.capitalize())
         shaded_btn.setChecked(True)
         shaded_btn.toggled.connect(
-            lambda checked: self._on_display_mode_changed('shaded') if checked else None
+            lambda checked: self._on_display_mode_changed(DisplayMode.SHADED) if checked else None
         )
         self._display_mode_btn_group.addButton(shaded_btn)
         layout.addWidget(shaded_btn)
         
         # Wireframe radio button
-        wireframe_btn = QRadioButton("Wireframe")
+        wireframe_btn = QRadioButton(DisplayMode.WIREFRAME.value.capitalize())
         wireframe_btn.toggled.connect(
-            lambda checked: self._on_display_mode_changed('wireframe') if checked else None
+            lambda checked: self._on_display_mode_changed(DisplayMode.WIREFRAME) if checked else None
         )
         self._display_mode_btn_group.addButton(wireframe_btn)
         layout.addWidget(wireframe_btn)
@@ -149,27 +151,27 @@ class ViewToolbar(QWidget):
         layout.setSpacing(5)
         
         # ISO view button
-        btn_iso = QPushButton("ISO")
+        btn_iso = QPushButton(ViewDirection.ISO.value.upper())
         btn_iso.setToolTip("Isometric view")
-        btn_iso.clicked.connect(lambda: self._on_projection_changed('iso'))
+        btn_iso.clicked.connect(lambda: self._on_projection_changed(ViewDirection.ISO))
         layout.addWidget(btn_iso)
         
         # Top view button
-        btn_top = QPushButton("Top")
+        btn_top = QPushButton(ViewDirection.TOP.value.capitalize())
         btn_top.setToolTip("Top view (Z+)")
-        btn_top.clicked.connect(lambda: self._on_projection_changed('top'))
+        btn_top.clicked.connect(lambda: self._on_projection_changed(ViewDirection.TOP))
         layout.addWidget(btn_top)
         
         # Front view button
-        btn_front = QPushButton("Front")
+        btn_front = QPushButton(ViewDirection.FRONT.value.capitalize())
         btn_front.setToolTip("Front view (Y-)")
-        btn_front.clicked.connect(lambda: self._on_projection_changed('front'))
+        btn_front.clicked.connect(lambda: self._on_projection_changed(ViewDirection.FRONT))
         layout.addWidget(btn_front)
         
         # Right view button
-        btn_right = QPushButton("Right")
+        btn_right = QPushButton(ViewDirection.RIGHT.value.capitalize())
         btn_right.setToolTip("Right view (X+)")
-        btn_right.clicked.connect(lambda: self._on_projection_changed('right'))
+        btn_right.clicked.connect(lambda: self._on_projection_changed(ViewDirection.RIGHT))
         layout.addWidget(btn_right)
         
         return group
@@ -195,17 +197,17 @@ class ViewToolbar(QWidget):
         return group
     
     # Signal emission methods
-    def _on_projection_changed(self, projection):
+    def _on_projection_changed(self, projection: ViewDirection):
         """Handle projection change."""
-        self.projection_changed.emit(projection)
+        self.projection_changed.emit(projection.value)
     
-    def _on_projection_type_changed(self, proj_type):
+    def _on_projection_type_changed(self, proj_type: ProjectionType):
         """Handle projection type change."""
-        self.projection_type_changed.emit(proj_type)
+        self.projection_type_changed.emit(proj_type.value)
     
-    def _on_display_mode_changed(self, mode):
+    def _on_display_mode_changed(self, mode: DisplayMode):
         """Handle display mode change."""
-        self.display_mode_changed.emit(mode)
+        self.display_mode_changed.emit(mode.value)
     
     def _on_fit_all_requested(self):
         """Handle fit all request."""
@@ -216,27 +218,27 @@ class ViewToolbar(QWidget):
         self.clear_requested.emit()
     
     # Public methods for programmatic control
-    def set_projection_type(self, proj_type):
+    def set_projection_type(self, proj_type: ProjectionType):
         """
         Programmatically set the projection type.
         
         Args:
-            proj_type: 'perspective' or 'orthographic'
+            proj_type: ProjectionType enum
         """
         for button in self._proj_type_btn_group.buttons():
-            if proj_type.lower() in button.text().lower():
+            if proj_type.value in button.text().lower():
                 button.setChecked(True)
                 break
     
-    def set_display_mode(self, mode):
+    def set_display_mode(self, mode: DisplayMode):
         """
         Programmatically set the display mode.
         
         Args:
-            mode: 'shaded' or 'wireframe'
+            mode: DisplayMode enum
         """
         for button in self._display_mode_btn_group.buttons():
-            if mode.lower() in button.text().lower():
+            if mode.value in button.text().lower():
                 button.setChecked(True)
                 break
     

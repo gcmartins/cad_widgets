@@ -5,5 +5,6 @@ A library for building 3D CAD viewers with PySide6 and OpenCascade (OCP)
 
 from .widgets.ocp_widget import OCPWidget
 from .widgets.view_toolbar import ViewToolbar
+from .widgets.enums import ViewDirection, ProjectionType, DisplayMode
 
 __version__ = "0.1.0"

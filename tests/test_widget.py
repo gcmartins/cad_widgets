@@ -3,14 +3,10 @@ Basic tests for OCPWidget
 """
 
 import sys
-import os
-
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from cad_widgets import OCPWidget
+from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode
 from cad_widgets.utils import create_box
 from OCP.AIS import AIS_ListOfInteractive
 
@@ -59,11 +55,11 @@ def test_projection_types(qapp):
     camera = view.Camera()
     
     # Test perspective (Projection_Perspective = 1)
-    widget.set_projection_type('perspective')
+    widget.set_projection_type(ProjectionType.PERSPECTIVE)
     assert camera.ProjectionType() == 1
     
     # Test orthographic (Projection_Orthographic = 0)
-    widget.set_projection_type('orthographic')
+    widget.set_projection_type(ProjectionType.ORTHOGRAPHIC)
     assert camera.ProjectionType() == 0
 
 
@@ -75,15 +71,15 @@ def test_display_modes(qapp):
     ctx = widget.get_context()
     
     # Test shaded mode (mode 1)
-    widget.set_display_mode('shaded')
+    widget.set_display_mode(DisplayMode.SHADED)
     assert ctx.DisplayMode() == 1
     
     # Test wireframe mode (mode 0)
-    widget.set_display_mode('wireframe')
+    widget.set_display_mode(DisplayMode.WIREFRAME)
     assert ctx.DisplayMode() == 0
     
     # Test both mode (mode 2)
-    widget.set_display_mode('both')
+    widget.set_display_mode(DisplayMode.BOTH)
     assert ctx.DisplayMode() == 2
 
 
@@ -95,22 +91,22 @@ def test_standard_views(qapp):
     view = widget.get_view()
     
     # Test top view - looking down Z axis
-    widget.set_projection('top')
+    widget.set_projection(ViewDirection.TOP)
     x, y, z = view.Proj()
     assert abs(z - 1.0) < 0.01
     
     # Test front view - looking along negative Y axis
-    widget.set_projection('front')
+    widget.set_projection(ViewDirection.FRONT)
     x, y, z = view.Proj()
     assert abs(y + 1.0) < 0.01
     
     # Test right view - looking along positive X axis
-    widget.set_projection('right')
+    widget.set_projection(ViewDirection.RIGHT)
     x, y, z = view.Proj()
     assert abs(x - 1.0) < 0.01
     
     # Test all other views (basic smoke test)
-    for view_name in ['back', 'bottom', 'left', 'iso']:
+    for view_name in [ViewDirection.BACK, ViewDirection.BOTTOM, ViewDirection.LEFT, ViewDirection.ISO]:
         widget.set_projection(view_name)
 
 
@@ -177,12 +173,12 @@ def test_display_shape_with_display_mode(qapp):
     box = create_box(100, 100, 100)
     
     # Test with wireframe mode
-    ais_shape = widget.display_shape(box, display_mode='wireframe')
+    ais_shape = widget.display_shape(box, display_mode=DisplayMode.WIREFRAME)
     assert ais_shape is not None
     
     # Test with shaded mode
     box2 = create_box(50, 50, 50)
-    ais_shape2 = widget.display_shape(box2, display_mode='shaded')
+    ais_shape2 = widget.display_shape(box2, display_mode=DisplayMode.SHADED)
     assert ais_shape2 is not None
 
 
@@ -243,7 +239,7 @@ def test_iso_view(qapp):
     widget.display_shape(box)
     view = widget.get_view()
     
-    widget.set_projection('iso')
+    widget.set_projection(ViewDirection.ISO)
     x, y, z = view.Proj()
     # Iso view should have equal components (normalized, so ~0.577 each)
     # Verify they're all equal and positive
@@ -259,7 +255,7 @@ def test_left_view(qapp):
     widget.display_shape(box)
     view = widget.get_view()
     
-    widget.set_projection('left')
+    widget.set_projection(ViewDirection.LEFT)
     x, y, z = view.Proj()
     assert abs(x + 1.0) < 0.01  # Looking along negative X
 
@@ -271,7 +267,7 @@ def test_back_view(qapp):
     widget.display_shape(box)
     view = widget.get_view()
     
-    widget.set_projection('back')
+    widget.set_projection(ViewDirection.BACK)
     x, y, z = view.Proj()
     assert abs(y - 1.0) < 0.01  # Looking along positive Y
 
@@ -283,7 +279,7 @@ def test_bottom_view(qapp):
     widget.display_shape(box)
     view = widget.get_view()
     
-    widget.set_projection('bottom')
+    widget.set_projection(ViewDirection.BOTTOM)
     x, y, z = view.Proj()
     assert abs(z + 1.0) < 0.01  # Looking up along negative Z
 

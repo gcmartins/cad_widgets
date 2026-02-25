@@ -23,6 +23,8 @@ from OCP.AIS import AIS_InteractiveContext, AIS_Shape
 from OCP.Quantity import Quantity_Color, Quantity_TOC_RGB, Quantity_NOC_WHITE
 from OCP.Graphic3d import Graphic3d_Camera
 
+from .enums import ViewDirection, ProjectionType, DisplayMode
+
 # Platform-specific window imports
 if sys.platform == "win32":
     from OCP.WNT import WNT_Window
@@ -188,7 +190,7 @@ class OCPWidget(QWidget):
             import traceback
             traceback.print_exc()
 
-    def display_shape(self, shape, color=None, transparency=0.0, update=True, display_mode=None):
+    def display_shape(self, shape, color=None, transparency=0.0, update=True, display_mode: DisplayMode = None):
         """
         Display an OCP shape in the viewer.
         
@@ -197,7 +199,7 @@ class OCPWidget(QWidget):
             color: Tuple of RGB values (0-1) or None for default
             transparency: Float 0-1 for transparency
             update: Whether to update the display
-            display_mode: String - 'shaded', 'wireframe', or None for default
+            display_mode: DisplayMode enum or None for default
             
         Returns:
             AIS_Shape object
@@ -224,9 +226,9 @@ class OCPWidget(QWidget):
             
             # Set display mode if specified
             if display_mode:
-                if display_mode.lower() == 'wireframe':
+                if display_mode == DisplayMode.WIREFRAME:
                     self._context.SetDisplayMode(ais_shape, 0, update)  # 0 = Wireframe
-                elif display_mode.lower() == 'shaded':
+                elif display_mode == DisplayMode.SHADED:
                     self._context.SetDisplayMode(ais_shape, 1, update)  # 1 = Shaded
             
             return ais_shape
@@ -270,36 +272,36 @@ class OCPWidget(QWidget):
                 self._is_rendering = False
                 print(f"Error in immediate redraw: {e}")
 
-    def set_projection(self, direction):
+    def set_projection(self, direction: ViewDirection):
         """
         Set view direction.
         
         Args:
-            direction: String - 'top', 'bottom', 'left', 'right', 'front', 'back', 'iso'
+            direction: ViewDirection enum
         """
         if not self._view:
             return
             
         try:
-            if direction == 'top':
+            if direction == ViewDirection.TOP:
                 self._view.SetProj(0, 0, 1)
                 self._view.SetUp(0, 1, 0)  # Y-axis up for top view
-            elif direction == 'bottom':
+            elif direction == ViewDirection.BOTTOM:
                 self._view.SetProj(0, 0, -1)
                 self._view.SetUp(0, 1, 0)  # Y-axis up for bottom view
-            elif direction == 'front':
+            elif direction == ViewDirection.FRONT:
                 self._view.SetProj(0, -1, 0)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for front view
-            elif direction == 'back':
+            elif direction == ViewDirection.BACK:
                 self._view.SetProj(0, 1, 0)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for back view
-            elif direction == 'left':
+            elif direction == ViewDirection.LEFT:
                 self._view.SetProj(-1, 0, 0)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for left view
-            elif direction == 'right':
+            elif direction == ViewDirection.RIGHT:
                 self._view.SetProj(1, 0, 0)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for right view
-            elif direction == 'iso':
+            elif direction == ViewDirection.ISO:
                 self._view.SetProj(1, 1, 1)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for iso view
             
@@ -307,18 +309,18 @@ class OCPWidget(QWidget):
         except Exception as e:
             print(f"Error setting projection: {e}")
 
-    def set_projection_type(self, projection_type='perspective'):
+    def set_projection_type(self, projection_type: ProjectionType = ProjectionType.PERSPECTIVE):
         """
         Set the camera projection type.
         
         Args:
-            projection_type: String - 'perspective' or 'orthographic'
+            projection_type: ProjectionType enum
         """
         if not self._view:
             return
             
         try:
-            if projection_type.lower() == 'orthographic':
+            if projection_type == ProjectionType.ORTHOGRAPHIC:
                 self._view.Camera().SetProjectionType(
                     Graphic3d_Camera.Projection_Orthographic
                 )
@@ -330,21 +332,21 @@ class OCPWidget(QWidget):
         except Exception as e:
             print(f"Error setting projection type: {e}")
     
-    def set_display_mode(self, mode='shaded'):
+    def set_display_mode(self, mode: DisplayMode = DisplayMode.SHADED):
         """
         Set the display mode for all shapes.
         
         Args:
-            mode: String - 'shaded', 'wireframe', or 'both'
+            mode: DisplayMode enum
         """
         if not self._context:
             return
             
         try:
-            if mode.lower() == 'wireframe':
+            if mode == DisplayMode.WIREFRAME:
                 # Display mode 0 = Wireframe
                 self._context.SetDisplayMode(0, True)
-            elif mode.lower() == 'both':
+            elif mode == DisplayMode.BOTH:
                 # Display mode 2 = Both shaded and wireframe
                 self._context.SetDisplayMode(2, True)
             else:  # shaded

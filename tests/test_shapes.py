@@ -2,12 +2,6 @@
 Tests for shape creation utilities
 """
 
-import sys
-import os
-
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-
 import pytest
 from cad_widgets.utils import (
     create_box, create_sphere, create_cylinder, 
