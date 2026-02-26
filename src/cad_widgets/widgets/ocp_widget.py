@@ -9,6 +9,8 @@ Features:
 - Platform-specific window integration (X11/Windows/macOS)
 """
 
+from typing import Optional
+
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt, QTimer
 import sys
@@ -47,8 +49,8 @@ class OCPWidget(QWidget):
         self.setMouseTracking(True)
         
         # Set widget attributes for proper rendering
-        self.setAttribute(Qt.WA_NoSystemBackground, True)
-        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
         
         # Initialize OpenCascade components
         self._display_connection = None
@@ -179,7 +181,7 @@ class OCPWidget(QWidget):
                 )
             
             # Set the window for the view
-            self._view.SetWindow(occ_window)
+            self._view.SetWindow(occ_window)  # type: ignore[union-attr]
             
             # Map the window if needed
             if not occ_window.IsMapped():
@@ -190,7 +192,7 @@ class OCPWidget(QWidget):
             import traceback
             traceback.print_exc()
 
-    def display_shape(self, shape, color=None, transparency=0.0, update=True, display_mode: DisplayMode = None):
+    def display_shape(self, shape, color=None, transparency=0.0, update=True, display_mode: Optional[DisplayMode] = None):
         """
         Display an OCP shape in the viewer.
         
@@ -387,7 +389,7 @@ class OCPWidget(QWidget):
         # Start rotation or panning
         if self._view:
             x, y = self._last_pos.x(), self._last_pos.y()
-            if event.buttons() & Qt.LeftButton:
+            if event.buttons() & Qt.MouseButton.LeftButton:
                 self._view.StartRotation(x, y)
 
     def mouseMoveEvent(self, event):
@@ -401,12 +403,12 @@ class OCPWidget(QWidget):
         dy = y - self._last_pos.y()
 
         try:
-            if event.buttons() & Qt.LeftButton:
+            if event.buttons() & Qt.MouseButton.LeftButton:
                 # Rotation - use current position
                 self._view.Rotation(x, y)
                 # Use immediate redraw for smooth interaction
                 self._redraw_immediate()
-            elif event.buttons() & Qt.MiddleButton:
+            elif event.buttons() & Qt.MouseButton.MiddleButton:
                 # Panning
                 self._view.Pan(dx, -dy)
                 # Use immediate redraw for smooth interaction

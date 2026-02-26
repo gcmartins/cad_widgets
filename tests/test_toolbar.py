@@ -6,7 +6,6 @@ import sys
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer
 from cad_widgets.widgets.view_toolbar import ViewToolbar
 from cad_widgets import ViewDirection, ProjectionType, DisplayMode
 

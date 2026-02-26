@@ -2,7 +2,6 @@
 Tests for shape creation utilities
 """
 
-import pytest
 from cad_widgets.utils import (
     create_box, create_sphere, create_cylinder, 
     create_cone, create_torus, translate_shape

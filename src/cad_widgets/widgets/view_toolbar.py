@@ -3,6 +3,8 @@ View Toolbar Component for OCP Widget
 A reusable toolbar providing view controls for 3D CAD visualization
 """
 
+from typing import Union
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
     QButtonGroup, QRadioButton, QGroupBox, QFrame
@@ -46,6 +48,7 @@ class ViewToolbar(QWidget):
     def _setup_ui(self):
         """Setup the user interface."""
         # Main layout
+        main_layout: Union[QVBoxLayout, QHBoxLayout]
         if self._orientation == 'vertical':
             main_layout = QVBoxLayout(self)
         else:
@@ -64,10 +67,10 @@ class ViewToolbar(QWidget):
         # Separator
         separator = QFrame()
         if self._orientation == 'vertical':
-            separator.setFrameShape(QFrame.HLine)
+            separator.setFrameShape(QFrame.Shape.HLine)
         else:
-            separator.setFrameShape(QFrame.VLine)
-        separator.setFrameShadow(QFrame.Sunken)
+            separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
         main_layout.addWidget(separator)
         
         # Standard views group
@@ -77,10 +80,10 @@ class ViewToolbar(QWidget):
         # Separator
         separator2 = QFrame()
         if self._orientation == 'vertical':
-            separator2.setFrameShape(QFrame.HLine)
+            separator2.setFrameShape(QFrame.Shape.HLine)
         else:
-            separator2.setFrameShape(QFrame.VLine)
-        separator2.setFrameShadow(QFrame.Sunken)
+            separator2.setFrameShape(QFrame.Shape.VLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
         main_layout.addWidget(separator2)
         
         # View actions

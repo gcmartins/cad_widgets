@@ -39,8 +39,37 @@ dev = [
     "invoke>=2.2.0,<3",
     "ruff>=0.15.2",
     "pytest-cov>=7.0.0",
+    "mypy>=1.13.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+no_implicit_optional = true
+mypy_path = "src"
+packages = ["cad_widgets"]
+
+# Ignore errors from libraries without type stubs
+[[tool.mypy.overrides]]
+module = [
+    "OCP.*",
+    "PySide6.*",
+]
+ignore_missing_imports = true
+ignore_errors = true
+
+[tool.ruff.lint]
+ignore = ["F401"]  # Ignore unused imports globally

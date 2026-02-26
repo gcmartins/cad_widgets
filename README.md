@@ -199,14 +199,53 @@ pytest tests/ --cov=cad_widgets
 pytest tests/test_widget.py -v
 ```
 
-### Code Formatting
+### Type Checking
+
+Type checking with mypy is configured and enabled:
 
 ```bash
-# Format code with ruff
-ruff check --fix
+# Run type checker
+mypy src/cad_widgets
 
-# Check types
-mypy src/
+# Or using invoke
+uv run invoke typecheck
+```
+
+The project uses PEP 561 typing and includes a `py.typed` marker. Configuration is in `pyproject.toml`.
+
+### Code Formatting and Linting
+
+```bash
+# Check code with ruff
+ruff check src tests examples
+
+# Auto-fix issues
+ruff check --fix src tests examples
+
+# Format code
+ruff format src tests examples
+
+# Or using invoke
+uv run invoke lint
+uv run invoke format
+```
+
+### Development Tasks
+
+The project includes invoke tasks for common operations:
+
+```bash
+# Run all checks (lint, typecheck, test)
+uv run invoke check
+
+# Individual tasks
+uv run invoke test           # Run tests
+uv run invoke test --verbose # Run tests with verbose output
+uv run invoke test-cov       # Run tests with coverage
+uv run invoke typecheck      # Run mypy
+uv run invoke lint           # Run ruff linting
+uv run invoke format         # Format code
+uv run invoke clean          # Clean generated files
 ```
 
 ## Documentation
