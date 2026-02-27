@@ -1,5 +1,5 @@
 """
-Tests for ViewToolbar component
+Tests for ViewToolbar and SelectionToolbar components
 """
 
 import sys
@@ -7,7 +7,8 @@ import sys
 import pytest
 from PySide6.QtWidgets import QApplication
 from cad_widgets.widgets.view_toolbar import ViewToolbar
-from cad_widgets import ViewDirection, ProjectionType, DisplayMode
+from cad_widgets.widgets.selection_toolbar import SelectionToolbar
+from cad_widgets import ViewDirection, ProjectionType, DisplayMode, SelectionMode
 
 
 @pytest.fixture(scope="session")
@@ -166,3 +167,180 @@ def test_case_insensitive_setters(qapp):
     
     toolbar.set_display_mode(DisplayMode.WIREFRAME)
     assert toolbar.get_display_mode() == 'wireframe'
+
+
+# ============================================================================
+# SelectionToolbar Tests
+# ============================================================================
+
+
+def test_selection_toolbar_creation_horizontal(qapp):
+    """Test horizontal selection toolbar creation."""
+    toolbar = SelectionToolbar(orientation='horizontal')
+    assert toolbar is not None
+
+
+def test_selection_toolbar_creation_vertical(qapp):
+    """Test vertical selection toolbar creation."""
+    toolbar = SelectionToolbar(orientation='vertical')
+    assert toolbar is not None
+
+
+def test_selection_toolbar_default_mode(qapp):
+    """Test default selection mode is volume."""
+    toolbar = SelectionToolbar()
+    assert toolbar.get_current_mode() == SelectionMode.VOLUME
+
+
+def test_selection_toolbar_default_enabled(qapp):
+    """Test selection is enabled by default."""
+    toolbar = SelectionToolbar()
+    assert toolbar.is_selection_enabled() is True
+
+
+def test_set_selection_mode_programmatically(qapp):
+    """Test setting selection mode programmatically."""
+    toolbar = SelectionToolbar()
+    
+    toolbar.set_mode(SelectionMode.SURFACE)
+    assert toolbar.get_current_mode() == SelectionMode.SURFACE
+    
+    toolbar.set_mode(SelectionMode.EDGE)
+    assert toolbar.get_current_mode() == SelectionMode.EDGE
+    
+    toolbar.set_mode(SelectionMode.VERTEX)
+    assert toolbar.get_current_mode() == SelectionMode.VERTEX
+    
+    toolbar.set_mode(SelectionMode.VOLUME)
+    assert toolbar.get_current_mode() == SelectionMode.VOLUME
+
+
+def test_selection_mode_changed_signal(qapp):
+    """Test selection mode changed signal emission."""
+    toolbar = SelectionToolbar()
+    
+    received_signals = []
+    toolbar.selection_mode_changed.connect(lambda mode: received_signals.append(mode))
+    
+    toolbar.set_mode(SelectionMode.SURFACE)
+    toolbar.set_mode(SelectionMode.EDGE)
+    toolbar.set_mode(SelectionMode.VERTEX)
+    
+    assert len(received_signals) == 3
+    assert 'surface' in received_signals
+    assert 'edge' in received_signals
+    assert 'vertex' in received_signals
+
+
+def test_selection_enabled_changed_signal(qapp):
+    """Test selection enabled/disabled signal emission."""
+    toolbar = SelectionToolbar()
+    
+    received_signals = []
+    toolbar.selection_enabled_changed.connect(lambda enabled: received_signals.append(enabled))
+    
+    toolbar.set_selection_enabled(False)
+    toolbar.set_selection_enabled(True)
+    
+    assert len(received_signals) == 2
+    assert received_signals == [False, True]
+
+
+def test_clear_selection_signal(qapp):
+    """Test clear selection signal emission."""
+    toolbar = SelectionToolbar()
+    
+    signal_received = []
+    toolbar.clear_selection_requested.connect(lambda: signal_received.append(True))
+    
+    toolbar._on_clear_selection()
+    
+    assert len(signal_received) == 1
+
+
+def test_disable_selection(qapp):
+    """Test disabling selection."""
+    toolbar = SelectionToolbar()
+    
+    toolbar.set_selection_enabled(False)
+    
+    assert toolbar.is_selection_enabled() is False
+    # When disabled, mode should return None
+    assert toolbar.get_current_mode() is None
+
+
+def test_mode_buttons_disabled_when_selection_disabled(qapp):
+    """Test that mode buttons are disabled when selection is disabled."""
+    toolbar = SelectionToolbar()
+    
+    toolbar.set_selection_enabled(False)
+    
+    # The radio buttons should be disabled
+    assert toolbar._volume_radio.isEnabled() is False
+    assert toolbar._surface_radio.isEnabled() is False
+    assert toolbar._edge_radio.isEnabled() is False
+    assert toolbar._vertex_radio.isEnabled() is False
+
+
+def test_mode_buttons_enabled_when_selection_enabled(qapp):
+    """Test that mode buttons are enabled when selection is enabled."""
+    toolbar = SelectionToolbar()
+    
+    toolbar.set_selection_enabled(False)
+    toolbar.set_selection_enabled(True)
+    
+    # The radio buttons should be enabled
+    assert toolbar._volume_radio.isEnabled() is True
+    assert toolbar._surface_radio.isEnabled() is True
+    assert toolbar._edge_radio.isEnabled() is True
+    assert toolbar._vertex_radio.isEnabled() is True
+
+
+def test_selection_mode_signal_not_emitted_when_disabled(qapp):
+    """Test that selection mode signal is not emitted when selection is disabled."""
+    toolbar = SelectionToolbar()
+    toolbar.set_selection_enabled(False)
+    
+    received_signals = []
+    toolbar.selection_mode_changed.connect(lambda mode: received_signals.append(mode))
+    
+    toolbar.set_mode(SelectionMode.SURFACE)
+    
+    # Signal should not be emitted when selection is disabled
+    assert len(received_signals) == 0
+
+
+def test_selection_toolbar_all_modes(qapp):
+    """Test all selection modes can be set."""
+    toolbar = SelectionToolbar()
+    
+    modes = [
+        SelectionMode.VOLUME,
+        SelectionMode.SURFACE,
+        SelectionMode.EDGE,
+        SelectionMode.VERTEX
+    ]
+    
+    for mode in modes:
+        toolbar.set_mode(mode)
+        assert toolbar.get_current_mode() == mode
+
+
+def test_selection_toolbar_multiple_signals(qapp):
+    """Test multiple signals working together."""
+    toolbar = SelectionToolbar()
+    
+    events = []
+    
+    toolbar.selection_mode_changed.connect(lambda m: events.append(('mode', m)))
+    toolbar.selection_enabled_changed.connect(lambda e: events.append(('enabled', e)))
+    toolbar.clear_selection_requested.connect(lambda: events.append(('clear', None)))
+    
+    toolbar.set_mode(SelectionMode.EDGE)
+    toolbar.set_selection_enabled(False)
+    toolbar._on_clear_selection()
+    
+    assert len(events) >= 3
+    assert ('mode', 'edge') in events
+    assert ('enabled', False) in events
+    assert ('clear', None) in events

@@ -6,7 +6,7 @@ import sys
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode
+from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode, SelectionMode
 from cad_widgets.utils import create_box
 from OCP.AIS import AIS_ListOfInteractive
 
@@ -291,3 +291,190 @@ def test_display_shape_default_color(qapp):
     
     ais_shape = widget.display_shape(box, color=None)
     assert ais_shape is not None
+
+
+# ============================================================================
+# Selection Tests
+# ============================================================================
+
+
+def test_selection_enabled_by_default(qapp):
+    """Test that selection is enabled by default."""
+    widget = OCPWidget()
+    assert widget.is_selection_enabled() is True
+
+
+def test_default_selection_mode(qapp):
+    """Test default selection mode is VOLUME."""
+    widget = OCPWidget()
+    assert widget.get_selection_mode() == SelectionMode.VOLUME
+
+
+def test_set_selection_mode(qapp):
+    """Test setting different selection modes."""
+    widget = OCPWidget()
+    
+    widget.set_selection_mode(SelectionMode.SURFACE)
+    assert widget.get_selection_mode() == SelectionMode.SURFACE
+    
+    widget.set_selection_mode(SelectionMode.EDGE)
+    assert widget.get_selection_mode() == SelectionMode.EDGE
+    
+    widget.set_selection_mode(SelectionMode.VERTEX)
+    assert widget.get_selection_mode() == SelectionMode.VERTEX
+    
+    widget.set_selection_mode(SelectionMode.VOLUME)
+    assert widget.get_selection_mode() == SelectionMode.VOLUME
+
+
+def test_disable_selection(qapp):
+    """Test disabling selection."""
+    widget = OCPWidget()
+    
+    widget.set_selection_enabled(False)
+    assert widget.is_selection_enabled() is False
+    
+    widget.set_selection_enabled(True)
+    assert widget.is_selection_enabled() is True
+
+
+def test_clear_selection(qapp):
+    """Test clearing selection."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    # Clear selection should not raise an error
+    widget.clear_selection()
+
+
+def test_get_selected_shapes_empty(qapp):
+    """Test getting selected shapes when nothing is selected."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    selected = widget.get_selected_shapes()
+    assert isinstance(selected, list)
+    assert len(selected) == 0
+
+
+def test_selection_mode_all_types(qapp):
+    """Test all selection mode types."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    modes = [
+        SelectionMode.VOLUME,
+        SelectionMode.SURFACE,
+        SelectionMode.EDGE,
+        SelectionMode.VERTEX
+    ]
+    
+    for mode in modes:
+        widget.set_selection_mode(mode)
+        assert widget.get_selection_mode() == mode
+
+
+def test_selection_enabled_toggle(qapp):
+    """Test toggling selection on and off."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    # Start enabled (default)
+    assert widget.is_selection_enabled() is True
+    
+    # Disable
+    widget.set_selection_enabled(False)
+    assert widget.is_selection_enabled() is False
+    
+    # Enable again
+    widget.set_selection_enabled(True)
+    assert widget.is_selection_enabled() is True
+    
+    # Disable again
+    widget.set_selection_enabled(False)
+    assert widget.is_selection_enabled() is False
+
+
+def test_selection_mode_with_multiple_shapes(qapp):
+    """Test selection mode setting with multiple shapes displayed."""
+    widget = OCPWidget()
+    
+    box1 = create_box(100, 100, 100)
+    box2 = create_box(50, 50, 50)
+    box3 = create_box(25, 25, 25)
+    
+    widget.display_shape(box1)
+    widget.display_shape(box2)
+    widget.display_shape(box3)
+    
+    # Should be able to set selection mode with multiple shapes
+    widget.set_selection_mode(SelectionMode.SURFACE)
+    assert widget.get_selection_mode() == SelectionMode.SURFACE
+
+
+def test_clear_selection_multiple_times(qapp):
+    """Test clearing selection multiple times."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    # Should not raise an error when called multiple times
+    widget.clear_selection()
+    widget.clear_selection()
+    widget.clear_selection()
+
+
+def test_selection_with_no_shapes(qapp):
+    """Test selection operations with no shapes displayed."""
+    widget = OCPWidget()
+    
+    # Should not raise errors
+    widget.set_selection_mode(SelectionMode.SURFACE)
+    widget.set_selection_enabled(False)
+    widget.clear_selection()
+    selected = widget.get_selected_shapes()
+    assert len(selected) == 0
+
+
+def test_selection_mode_persistence(qapp):
+    """Test that selection mode persists through enable/disable cycles."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    # Set a non-default mode
+    widget.set_selection_mode(SelectionMode.EDGE)
+    assert widget.get_selection_mode() == SelectionMode.EDGE
+    
+    # Disable and re-enable selection
+    widget.set_selection_enabled(False)
+    widget.set_selection_enabled(True)
+    
+    # Mode should still be EDGE
+    assert widget.get_selection_mode() == SelectionMode.EDGE
+
+
+def test_selection_mode_change_clears_selection(qapp):
+    """Test changing selection mode operations."""
+    widget = OCPWidget()
+    box = create_box(100, 100, 100)
+    widget.display_shape(box)
+    
+    widget.set_selection_mode(SelectionMode.VOLUME)
+    widget.set_selection_mode(SelectionMode.SURFACE)
+    widget.set_selection_mode(SelectionMode.EDGE)
+    
+    # Should complete without errors
+    assert widget.get_selection_mode() == SelectionMode.EDGE
+
+
+def test_get_selected_shapes_type(qapp):
+    """Test that get_selected_shapes returns a list."""
+    widget = OCPWidget()
+    
+    selected = widget.get_selected_shapes()
+    assert isinstance(selected, list)

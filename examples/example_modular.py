@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from cad_widgets import OCPWidget, ViewToolbar, ViewDirection, ProjectionType, DisplayMode
+from cad_widgets import OCPWidget, ViewToolbar, SelectionToolbar, ViewDirection, ProjectionType, DisplayMode, SelectionMode
 from cad_widgets.utils import create_box, create_sphere, create_cylinder, create_cone, create_torus, translate_shape
 
 from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
@@ -42,13 +42,24 @@ class CADViewerWindow(QMainWindow):
         # Create splitter for viewer and toolbar
         splitter = QSplitter(Qt.Horizontal)
         
+        # Create left panel with viewer and selection toolbar
+        left_panel = QWidget()
+        left_layout = QVBoxLayout(left_panel)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        
         # Create the OCP widget
         self.viewer = OCPWidget()
-        splitter.addWidget(self.viewer)
+        left_layout.addWidget(self.viewer)
+        
+        # Create the selection toolbar (horizontal orientation)
+        self.selection_toolbar = SelectionToolbar(orientation='horizontal')
+        left_layout.addWidget(self.selection_toolbar)
+        
+        splitter.addWidget(left_panel)
         
         # Create the view toolbar (vertical orientation)
-        self.toolbar = ViewToolbar(orientation='vertical')
-        splitter.addWidget(self.toolbar)
+        self.view_toolbar = ViewToolbar(orientation='vertical')
+        splitter.addWidget(self.view_toolbar)
         
         # Set splitter sizes (viewer takes most space)
         splitter.setSizes([900, 300])
@@ -74,7 +85,7 @@ class CADViewerWindow(QMainWindow):
         layout = QHBoxLayout(panel)
         
         # Info label
-        info_label = QLabel("🖱️ Left Click: Rotate | Middle Click: Pan | Scroll: Zoom")
+        info_label = QLabel("🖱️ Left Click: Select/Rotate | Middle Click: Pan | Scroll: Zoom | Ctrl/Shift+Click: Multi-select")
         info_label.setStyleSheet("padding: 5px; color: #555;")
         layout.addWidget(info_label)
         
@@ -90,24 +101,34 @@ class CADViewerWindow(QMainWindow):
     
     def _connect_signals(self):
         """Connect toolbar signals to viewer methods."""
-        # Connect projection changes (convert string to enum)
-        self.toolbar.projection_changed.connect(
+        # Connect view toolbar signals
+        self.view_toolbar.projection_changed.connect(
             lambda direction_str: self.viewer.set_projection(ViewDirection(direction_str))
         )
         
-        # Connect projection type changes (convert string to enum)
-        self.toolbar.projection_type_changed.connect(
+        self.view_toolbar.projection_type_changed.connect(
             lambda proj_type_str: self.viewer.set_projection_type(ProjectionType(proj_type_str))
         )
         
-        # Connect display mode changes (convert string to enum)
-        self.toolbar.display_mode_changed.connect(
+        self.view_toolbar.display_mode_changed.connect(
             lambda mode_str: self.viewer.set_display_mode(DisplayMode(mode_str))
         )
         
-        # Connect actions
-        self.toolbar.fit_all_requested.connect(self.viewer.fit_all)
-        self.toolbar.clear_requested.connect(self.viewer.erase_all)
+        self.view_toolbar.fit_all_requested.connect(self.viewer.fit_all)
+        self.view_toolbar.clear_requested.connect(self.viewer.erase_all)
+        
+        # Connect selection toolbar signals
+        self.selection_toolbar.selection_mode_changed.connect(
+            lambda mode_str: self.viewer.set_selection_mode(SelectionMode(mode_str))
+        )
+        
+        self.selection_toolbar.selection_enabled_changed.connect(
+            self.viewer.set_selection_enabled
+        )
+        
+        self.selection_toolbar.clear_selection_requested.connect(
+            self.viewer.clear_selection
+        )
 
     def load_example_shapes(self):
         """Load example 3D shapes into the viewer."""
@@ -146,6 +167,9 @@ class CADViewerWindow(QMainWindow):
 
         # Fit all shapes in view
         self.viewer.fit_all()
+        
+        # Initialize selection mode
+        self.viewer.set_selection_mode(SelectionMode.VOLUME)
 
 
 def main():

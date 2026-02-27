@@ -27,3 +27,11 @@ class DisplayMode(StrEnum):
     SHADED = "shaded"
     WIREFRAME = "wireframe"
     BOTH = "both"
+
+
+class SelectionMode(StrEnum):
+    """3D entity selection modes."""
+    VOLUME = "volume"
+    SURFACE = "surface"
+    EDGE = "edge"
+    VERTEX = "vertex"

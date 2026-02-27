@@ -22,10 +22,10 @@ from OCP.Aspect import (
 )
 from OCP.OpenGl import OpenGl_GraphicDriver
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
-from OCP.Quantity import Quantity_Color, Quantity_TOC_RGB, Quantity_NOC_WHITE
+from OCP.Quantity import Quantity_Color, Quantity_TOC_RGB, Quantity_NOC_WHITE, Quantity_NOC_ORANGE, Quantity_NOC_CYAN1
 from OCP.Graphic3d import Graphic3d_Camera
 
-from .enums import ViewDirection, ProjectionType, DisplayMode
+from .enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode
 
 # Platform-specific window imports
 if sys.platform == "win32":
@@ -61,9 +61,14 @@ class OCPWidget(QWidget):
         
         # Mouse tracking
         self._last_pos = None
+        self._mouse_moved = False  # Track if mouse moved during press
         
         # Rendering control
         self._is_rendering = False
+        
+        # Selection control
+        self._selection_enabled = True
+        self._selection_mode = SelectionMode.VOLUME
         
         # Initialize the viewer
         self._init_viewer()
@@ -93,6 +98,9 @@ class OCPWidget(QWidget):
             # Create AIS context for interactive display
             self._context = AIS_InteractiveContext(self._viewer)
             
+            # Configure selection and highlight colors for better visibility
+            self._configure_selection_colors()
+            
             # Note: Window setup happens via native Qt integration
             # The viewer renders when paintEvent triggers Redraw()
             
@@ -103,6 +111,32 @@ class OCPWidget(QWidget):
             print(f"Error initializing viewer: {e}")
             import traceback
             traceback.print_exc()
+
+    def _configure_selection_colors(self):
+        """Configure stronger highlight and selection colors."""
+        if not self._context:
+            return
+        
+        try:
+            # Get the highlight attributes for dynamic highlighting (hover)
+            highlight_drawer = self._context.HighlightStyle()
+            if highlight_drawer:
+                # Set highlight color to cyan for hover effect
+                highlight_color = Quantity_Color(Quantity_NOC_CYAN1)
+                highlight_drawer.SetColor(highlight_color)
+            
+            # Get the selection attributes for selected entities
+            selection_drawer = self._context.SelectionStyle()
+            if selection_drawer:
+                # Set selection color to a strong orange
+                selection_color = Quantity_Color(Quantity_NOC_ORANGE)
+                selection_drawer.SetColor(selection_color)
+            
+            # Make selection more prominent
+            self._context.SetToHilightSelected(True)
+            
+        except Exception as e:
+            print(f"Error configuring selection colors: {e}")
 
     def _setup_view(self):
         """Setup view parameters after widget is shown."""
@@ -385,6 +419,7 @@ class OCPWidget(QWidget):
     def mousePressEvent(self, event):
         """Handle mouse press events."""
         self._last_pos = event.position().toPoint()
+        self._mouse_moved = False  # Reset movement flag
         
         # Start rotation or panning
         if self._view:
@@ -393,14 +428,30 @@ class OCPWidget(QWidget):
                 self._view.StartRotation(x, y)
 
     def mouseMoveEvent(self, event):
-        """Handle mouse move events for rotation and panning."""
-        if not self._view or not self._last_pos:
-            return
-
+        """Handle mouse move events for rotation, panning, and hover detection."""
         pos = event.position().toPoint()
         x, y = pos.x(), pos.y()
+        
+        # If no buttons pressed, handle hover detection
+        if event.buttons() == Qt.MouseButton.NoButton:
+            if self._view and self._context and self._selection_enabled:
+                try:
+                    # Detect entities under cursor for hover effect
+                    self._context.MoveTo(x, y, self._view, True)
+                except Exception as e:
+                    print(f"Error in hover detection: {e}")
+            return
+        
+        # Handle dragging operations
+        if not self._view or not self._last_pos:
+            return
+        
         dx = x - self._last_pos.x()
         dy = y - self._last_pos.y()
+        
+        # Mark that mouse has moved
+        if abs(dx) > 2 or abs(dy) > 2:  # Threshold to ignore tiny movements
+            self._mouse_moved = True
 
         try:
             if event.buttons() & Qt.MouseButton.LeftButton:
@@ -420,8 +471,35 @@ class OCPWidget(QWidget):
 
     def mouseReleaseEvent(self, event):
         """Handle mouse release events."""
+        # If left button was clicked without moving (not a drag), perform selection
+        if (event.button() == Qt.MouseButton.LeftButton and 
+            not self._mouse_moved and 
+            self._selection_enabled and 
+            self._context):
+            try:
+                pos = event.position().toPoint()
+                x, y = pos.x(), pos.y()
+                
+                # Perform selection at mouse position
+                self._context.MoveTo(x, y, self._view, True)
+                
+                # Handle selection based on modifier keys
+                if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                    # Ctrl+Click: Toggle selection (add/remove from selection)
+                    self._context.ShiftSelect(True)
+                elif event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    # Shift+Click: Add to selection
+                    self._context.ShiftSelect(True)
+                else:
+                    # Regular click: Replace selection
+                    self._context.Select(True)
+                
+            except Exception as e:
+                print(f"Error handling selection: {e}")
+        
         # Clear last position to end interaction
         self._last_pos = None
+        self._mouse_moved = False
 
     def wheelEvent(self, event):
         """Handle mouse wheel events for zooming."""
@@ -448,3 +526,109 @@ class OCPWidget(QWidget):
     def get_viewer(self):
         """Get the V3d viewer."""
         return self._viewer
+    def set_selection_mode(self, mode: SelectionMode):
+        """
+        Set the selection mode for picking entities.
+        
+        Args:
+            mode: SelectionMode enum (VOLUME, SURFACE, EDGE, VERTEX)
+        """
+        self._selection_mode = mode
+        
+        if not self._context:
+            return
+        
+        try:
+            # Map selection mode to TopAbs shape types
+            if mode == SelectionMode.VOLUME:
+                shape_type = 0  # AIS_Shape standard mode for solids
+            elif mode == SelectionMode.SURFACE:
+                shape_type = 4  # Face selection mode
+            elif mode == SelectionMode.EDGE:
+                shape_type = 2  # Edge selection mode
+            elif mode == SelectionMode.VERTEX:
+                shape_type = 1  # Vertex selection mode
+            else:
+                shape_type = 0
+            
+            # Deactivate all selection modes first
+            self._context.Deactivate()
+            
+            # Activate the selected mode for all displayed objects
+            if self._selection_enabled:
+                self._context.Activate(shape_type, True)
+            
+            self.update_display()
+        except Exception as e:
+            print(f"Error setting selection mode: {e}")
+    
+    def set_selection_enabled(self, enabled: bool):
+        """
+        Enable or disable selection.
+        
+        Args:
+            enabled: True to enable selection, False to disable
+        """
+        self._selection_enabled = enabled
+        
+        if not self._context:
+            return
+        
+        try:
+            if enabled:
+                # Re-activate current selection mode
+                self.set_selection_mode(self._selection_mode)
+            else:
+                # Deactivate all selection modes
+                self._context.Deactivate()
+                # Clear any existing selection
+                self._context.ClearSelected(True)
+        except Exception as e:
+            print(f"Error setting selection enabled: {e}")
+    
+    def clear_selection(self):
+        """Clear all selected entities."""
+        if self._context:
+            try:
+                self._context.ClearSelected(True)
+            except Exception as e:
+                print(f"Error clearing selection: {e}")
+    
+    def get_selection_mode(self) -> SelectionMode:
+        """
+        Get the current selection mode.
+        
+        Returns:
+            Current SelectionMode
+        """
+        return self._selection_mode
+    
+    def is_selection_enabled(self) -> bool:
+        """
+        Check if selection is enabled.
+        
+        Returns:
+            True if selection is enabled, False otherwise
+        """
+        return self._selection_enabled
+    
+    def get_selected_shapes(self):
+        """
+        Get list of currently selected AIS shapes.
+        
+        Returns:
+            List of selected AIS_Shape objects
+        """
+        if not self._context:
+            return []
+        
+        selected = []
+        try:
+            self._context.InitSelected()
+            while self._context.MoreSelected():
+                selected.append(self._context.SelectedInteractive())
+                self._context.NextSelected()
+        except Exception as e:
+            print(f"Error getting selected shapes: {e}")
+        
+        return selected
