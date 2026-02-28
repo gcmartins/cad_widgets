@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt, QTimer
 import sys
 
-from OCP.V3d import V3d_Viewer
+from OCP.V3d import V3d_View, V3d_Viewer
 from OCP.Aspect import Aspect_DisplayConnection
 from OCP.OpenGl import OpenGl_GraphicDriver
 from OCP.AIS import AIS_InteractiveContext
@@ -49,10 +49,10 @@ class OCPWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
 
         # Initialize OpenCascade components
-        self._display_connection = None
+        self._display_connection: Aspect_DisplayConnection
         self._graphic_driver = None
         self._viewer = None
-        self._view = None
+        self._view: V3d_View
         self._context = None
 
         # Services
@@ -141,7 +141,7 @@ class OCPWidget(QWidget):
                 occ_window = Xw_Window(self._display_connection, window_handle)
 
             # Set the window for the view
-            self._view.SetWindow(occ_window)  # type: ignore[union-attr]
+            self._view.SetWindow(occ_window)
 
             # Map the window if needed
             if not occ_window.IsMapped():
