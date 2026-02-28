@@ -95,7 +95,7 @@ def test_multiple_shape_types():
         geo.create_cone(50, 25, 100),
         geo.create_torus(50, 15),
     ]
-    
+
     # All shapes should be created successfully
     assert all(shape is not None for shape in shapes)
     # All shapes should be different objects
