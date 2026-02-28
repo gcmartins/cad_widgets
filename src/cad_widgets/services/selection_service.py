@@ -8,7 +8,7 @@ from OCP.AIS import AIS_InteractiveContext
 from OCP.V3d import V3d_View
 from OCP.Quantity import Quantity_Color, Quantity_NOC_ORANGE, Quantity_NOC_CYAN1
 
-from ..widgets.enums import SelectionMode
+from cad_widgets.enums import SelectionMode
 
 
 class SelectionService:

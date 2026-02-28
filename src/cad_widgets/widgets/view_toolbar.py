@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
-from .enums import ViewDirection, ProjectionType, DisplayMode
+from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
 
 
 class ViewToolbar(QWidget):

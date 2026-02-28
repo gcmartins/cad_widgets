@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
-from .enums import SelectionMode
+from ..enums import SelectionMode
 
 
 class SelectionToolbar(QWidget):

@@ -10,7 +10,7 @@ from OCP.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCP.Graphic3d import Graphic3d_Camera
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
 
-from ..widgets.enums import ViewDirection, ProjectionType, DisplayMode
+from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
 
 
 class ViewService:

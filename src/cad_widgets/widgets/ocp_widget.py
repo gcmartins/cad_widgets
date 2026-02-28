@@ -20,7 +20,7 @@ from OCP.Aspect import Aspect_DisplayConnection
 from OCP.OpenGl import OpenGl_GraphicDriver
 from OCP.AIS import AIS_InteractiveContext
 
-from .enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode
+from ..enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode
 from ..services import SelectionService, ViewService
 
 # Platform-specific window imports
