@@ -7,7 +7,7 @@ from typing import Union
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-    QButtonGroup, QRadioButton, QGroupBox, QFrame
+    QComboBox, QGroupBox, QFrame, QLabel
 )
 from PySide6.QtCore import Signal
 
@@ -99,24 +99,14 @@ class ViewToolbar(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(5)
         
-        self._proj_type_btn_group = QButtonGroup(self)
+        # Create combo box
+        self._proj_type_combo = QComboBox()
+        self._proj_type_combo.addItem(ProjectionType.PERSPECTIVE.value.capitalize(), ProjectionType.PERSPECTIVE.value)
+        self._proj_type_combo.addItem(ProjectionType.ORTHOGRAPHIC.value.capitalize(), ProjectionType.ORTHOGRAPHIC.value)
+        self._proj_type_combo.setCurrentIndex(0)
+        self._proj_type_combo.currentIndexChanged.connect(self._on_projection_type_combo_changed)
         
-        # Perspective radio button
-        perspective_btn = QRadioButton(ProjectionType.PERSPECTIVE.value.capitalize())
-        perspective_btn.setChecked(True)
-        perspective_btn.toggled.connect(
-            lambda checked: self._on_projection_type_changed(ProjectionType.PERSPECTIVE) if checked else None
-        )
-        self._proj_type_btn_group.addButton(perspective_btn)
-        layout.addWidget(perspective_btn)
-        
-        # Orthographic radio button
-        ortho_btn = QRadioButton(ProjectionType.ORTHOGRAPHIC.value.capitalize())
-        ortho_btn.toggled.connect(
-            lambda checked: self._on_projection_type_changed(ProjectionType.ORTHOGRAPHIC) if checked else None
-        )
-        self._proj_type_btn_group.addButton(ortho_btn)
-        layout.addWidget(ortho_btn)
+        layout.addWidget(self._proj_type_combo)
         
         return group
     
@@ -126,24 +116,14 @@ class ViewToolbar(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(5)
         
-        self._display_mode_btn_group = QButtonGroup(self)
+        # Create combo box
+        self._display_mode_combo = QComboBox()
+        self._display_mode_combo.addItem(DisplayMode.SHADED.value.capitalize(), DisplayMode.SHADED.value)
+        self._display_mode_combo.addItem(DisplayMode.WIREFRAME.value.capitalize(), DisplayMode.WIREFRAME.value)
+        self._display_mode_combo.setCurrentIndex(0)
+        self._display_mode_combo.currentIndexChanged.connect(self._on_display_mode_combo_changed)
         
-        # Shaded radio button
-        shaded_btn = QRadioButton(DisplayMode.SHADED.value.capitalize())
-        shaded_btn.setChecked(True)
-        shaded_btn.toggled.connect(
-            lambda checked: self._on_display_mode_changed(DisplayMode.SHADED) if checked else None
-        )
-        self._display_mode_btn_group.addButton(shaded_btn)
-        layout.addWidget(shaded_btn)
-        
-        # Wireframe radio button
-        wireframe_btn = QRadioButton(DisplayMode.WIREFRAME.value.capitalize())
-        wireframe_btn.toggled.connect(
-            lambda checked: self._on_display_mode_changed(DisplayMode.WIREFRAME) if checked else None
-        )
-        self._display_mode_btn_group.addButton(wireframe_btn)
-        layout.addWidget(wireframe_btn)
+        layout.addWidget(self._display_mode_combo)
         
         return group
     
@@ -204,13 +184,15 @@ class ViewToolbar(QWidget):
         """Handle projection change."""
         self.projection_changed.emit(projection.value)
     
-    def _on_projection_type_changed(self, proj_type: ProjectionType):
-        """Handle projection type change."""
-        self.projection_type_changed.emit(proj_type.value)
+    def _on_projection_type_combo_changed(self, index: int):
+        """Handle projection type combo box change."""
+        proj_type_value = self._proj_type_combo.itemData(index)
+        self.projection_type_changed.emit(proj_type_value)
     
-    def _on_display_mode_changed(self, mode: DisplayMode):
-        """Handle display mode change."""
-        self.display_mode_changed.emit(mode.value)
+    def _on_display_mode_combo_changed(self, index: int):
+        """Handle display mode combo box change."""
+        mode_value = self._display_mode_combo.itemData(index)
+        self.display_mode_changed.emit(mode_value)
     
     def _on_fit_all_requested(self):
         """Handle fit all request."""
@@ -228,9 +210,9 @@ class ViewToolbar(QWidget):
         Args:
             proj_type: ProjectionType enum
         """
-        for button in self._proj_type_btn_group.buttons():
-            if proj_type.value in button.text().lower():
-                button.setChecked(True)
+        for i in range(self._proj_type_combo.count()):
+            if self._proj_type_combo.itemData(i) == proj_type.value:
+                self._proj_type_combo.setCurrentIndex(i)
                 break
     
     def set_display_mode(self, mode: DisplayMode):
@@ -240,21 +222,15 @@ class ViewToolbar(QWidget):
         Args:
             mode: DisplayMode enum
         """
-        for button in self._display_mode_btn_group.buttons():
-            if mode.value in button.text().lower():
-                button.setChecked(True)
+        for i in range(self._display_mode_combo.count()):
+            if self._display_mode_combo.itemData(i) == mode.value:
+                self._display_mode_combo.setCurrentIndex(i)
                 break
     
     def get_projection_type(self):
         """Get the current projection type."""
-        for button in self._proj_type_btn_group.buttons():
-            if button.isChecked():
-                return button.text().lower()
-        return 'perspective'
+        return self._proj_type_combo.currentData()
     
     def get_display_mode(self):
         """Get the current display mode."""
-        for button in self._display_mode_btn_group.buttons():
-            if button.isChecked():
-                return button.text().lower()
-        return 'shaded'
+        return self._display_mode_combo.currentData()

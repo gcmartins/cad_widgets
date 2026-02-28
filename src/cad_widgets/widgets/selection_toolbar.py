@@ -7,7 +7,7 @@ from typing import Union, Optional
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-    QButtonGroup, QRadioButton, QGroupBox, QFrame, QCheckBox
+    QComboBox, QGroupBox, QFrame, QCheckBox
 )
 from PySide6.QtCore import Signal
 
@@ -94,43 +94,21 @@ class SelectionToolbar(QWidget):
         layout = QVBoxLayout(group)
         layout.setSpacing(5)
         
-        # Create button group for mutually exclusive selection
-        self._mode_button_group = QButtonGroup(self)
+        # Create combo box for selection modes
+        self._mode_combo = QComboBox()
+        self._mode_combo.addItem("Volumes", SelectionMode.VOLUME.value)
+        self._mode_combo.addItem("Surfaces", SelectionMode.SURFACE.value)
+        self._mode_combo.addItem("Edges", SelectionMode.EDGE.value)
+        self._mode_combo.addItem("Vertices", SelectionMode.VERTEX.value)
+        self._mode_combo.setCurrentIndex(0)
         
-        # Volume selection
-        self._volume_radio = QRadioButton("Volumes")
-        self._volume_radio.setToolTip("Select solid volumes/bodies")
-        self._volume_radio.setChecked(True)
-        self._mode_button_group.addButton(self._volume_radio)
-        layout.addWidget(self._volume_radio)
+        # Set tooltips for the combo box
+        self._mode_combo.setToolTip("Select entity type to pick")
         
-        # Surface selection
-        self._surface_radio = QRadioButton("Surfaces")
-        self._surface_radio.setToolTip("Select faces/surfaces")
-        self._mode_button_group.addButton(self._surface_radio)
-        layout.addWidget(self._surface_radio)
+        # Connect signal
+        self._mode_combo.currentIndexChanged.connect(self._on_mode_combo_changed)
         
-        # Edge selection
-        self._edge_radio = QRadioButton("Edges")
-        self._edge_radio.setToolTip("Select edges")
-        self._mode_button_group.addButton(self._edge_radio)
-        layout.addWidget(self._edge_radio)
-        
-        # Vertex selection
-        self._vertex_radio = QRadioButton("Vertices")
-        self._vertex_radio.setToolTip("Select vertices/points")
-        self._mode_button_group.addButton(self._vertex_radio)
-        layout.addWidget(self._vertex_radio)
-        
-        # Connect signals
-        self._volume_radio.toggled.connect(lambda checked: 
-            self._on_mode_changed(SelectionMode.VOLUME) if checked else None)
-        self._surface_radio.toggled.connect(lambda checked: 
-            self._on_mode_changed(SelectionMode.SURFACE) if checked else None)
-        self._edge_radio.toggled.connect(lambda checked: 
-            self._on_mode_changed(SelectionMode.EDGE) if checked else None)
-        self._vertex_radio.toggled.connect(lambda checked: 
-            self._on_mode_changed(SelectionMode.VERTEX) if checked else None)
+        layout.addWidget(self._mode_combo)
         
         return group
     
@@ -148,20 +126,18 @@ class SelectionToolbar(QWidget):
         
         return group
     
-    def _on_mode_changed(self, mode: SelectionMode):
-        """Handle selection mode change."""
+    def _on_mode_combo_changed(self, index: int):
+        """Handle selection mode combo box change."""
         if self._selection_enabled:
-            self.selection_mode_changed.emit(mode.value)
+            mode_value = self._mode_combo.itemData(index)
+            self.selection_mode_changed.emit(mode_value)
     
     def _on_selection_enabled_toggled(self, checked: bool):
         """Handle selection enable/disable toggle."""
         self._selection_enabled = checked
         
-        # Enable/disable mode buttons
-        self._volume_radio.setEnabled(checked)
-        self._surface_radio.setEnabled(checked)
-        self._edge_radio.setEnabled(checked)
-        self._vertex_radio.setEnabled(checked)
+        # Enable/disable mode combo box
+        self._mode_combo.setEnabled(checked)
         
         self.selection_enabled_changed.emit(checked)
     
@@ -179,14 +155,12 @@ class SelectionToolbar(QWidget):
         if not self._selection_enabled:
             return None
         
-        if self._volume_radio.isChecked():
-            return SelectionMode.VOLUME
-        elif self._surface_radio.isChecked():
-            return SelectionMode.SURFACE
-        elif self._edge_radio.isChecked():
-            return SelectionMode.EDGE
-        elif self._vertex_radio.isChecked():
-            return SelectionMode.VERTEX
+        mode_value = self._mode_combo.currentData()
+        
+        # Map string value back to enum
+        for mode in SelectionMode:
+            if mode.value == mode_value:
+                return mode
         
         return SelectionMode.VOLUME  # Default
     
@@ -197,14 +171,10 @@ class SelectionToolbar(QWidget):
         Args:
             mode: SelectionMode to set
         """
-        if mode == SelectionMode.VOLUME:
-            self._volume_radio.setChecked(True)
-        elif mode == SelectionMode.SURFACE:
-            self._surface_radio.setChecked(True)
-        elif mode == SelectionMode.EDGE:
-            self._edge_radio.setChecked(True)
-        elif mode == SelectionMode.VERTEX:
-            self._vertex_radio.setChecked(True)
+        for i in range(self._mode_combo.count()):
+            if self._mode_combo.itemData(i) == mode.value:
+                self._mode_combo.setCurrentIndex(i)
+                break
     
     def is_selection_enabled(self) -> bool:
         """

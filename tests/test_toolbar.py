@@ -270,30 +270,24 @@ def test_disable_selection(qapp):
 
 
 def test_mode_buttons_disabled_when_selection_disabled(qapp):
-    """Test that mode buttons are disabled when selection is disabled."""
+    """Test that mode combo box is disabled when selection is disabled."""
     toolbar = SelectionToolbar()
     
     toolbar.set_selection_enabled(False)
     
-    # The radio buttons should be disabled
-    assert toolbar._volume_radio.isEnabled() is False
-    assert toolbar._surface_radio.isEnabled() is False
-    assert toolbar._edge_radio.isEnabled() is False
-    assert toolbar._vertex_radio.isEnabled() is False
+    # The combo box should be disabled
+    assert toolbar._mode_combo.isEnabled() is False
 
 
 def test_mode_buttons_enabled_when_selection_enabled(qapp):
-    """Test that mode buttons are enabled when selection is enabled."""
+    """Test that mode combo box is enabled when selection is enabled."""
     toolbar = SelectionToolbar()
     
     toolbar.set_selection_enabled(False)
     toolbar.set_selection_enabled(True)
     
-    # The radio buttons should be enabled
-    assert toolbar._volume_radio.isEnabled() is True
-    assert toolbar._surface_radio.isEnabled() is True
-    assert toolbar._edge_radio.isEnabled() is True
-    assert toolbar._vertex_radio.isEnabled() is True
+    # The combo box should be enabled
+    assert toolbar._mode_combo.isEnabled() is True
 
 
 def test_selection_mode_signal_not_emitted_when_disabled(qapp):
