@@ -37,15 +37,15 @@ pip install -e .
 
 ```python
 from PySide6.QtWidgets import QApplication
-from cad_widgets import OCPWidget
-from cad_widgets.utils import create_box
+from cad_widgets import OCPWidget, GeometryService
 
 app = QApplication([])
 
 viewer = OCPWidget()
 viewer.resize(800, 600)
 
-box = create_box(100, 100, 100)
+geo = GeometryService()
+box = geo.create_box(100, 100, 100)
 viewer.display_shape(box, color=(0.8, 0.2, 0.2))
 viewer.fit_all()
 
@@ -132,21 +132,26 @@ toolbar.clear_requested.connect(viewer.erase_all)
 
 #### Shape Utilities
 
-Helper functions for creating and manipulating shapes.
+Helper service for creating and manipulating shapes.
 
 ```python
-from cad_widgets.utils import (
-    create_box, create_sphere, create_cylinder,
-    create_cone, create_torus, translate_shape
-)
+from cad_widgets import GeometryService
 
-box = create_box(100, 50, 75)
-sphere = create_sphere(30)
-sphere_moved = translate_shape(sphere, 100, 0, 0)
+geo = GeometryService()
 
-from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
-axis = gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1))
-cylinder = create_cylinder(20, 60, axis)
+# Create shapes with simple parameters
+box = geo.create_box(100, 50, 75)
+sphere = geo.create_sphere(30)
+
+# Create shapes with custom position using tuples
+sphere_moved = geo.create_sphere(30, center=(100, 0, 0))
+box_positioned = geo.create_box(50, 50, 50, position=(50, 0, 0))
+
+# Create shapes with custom direction using tuples
+cylinder = geo.create_cylinder(20, 60, position=(0, 0, 0), direction=(0, 0, 1))
+
+# Transform shapes
+translated = geo.translate_shape(box, 100, 0, 0)
 ```
 
 ## Mouse Controls

@@ -14,10 +14,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
-from cad_widgets import OCPWidget, ViewToolbar, SelectionToolbar, ViewDirection, ProjectionType, DisplayMode, SelectionMode
-from cad_widgets.utils import create_box, create_sphere, create_cylinder, create_cone, create_torus, translate_shape
-
-from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
+from cad_widgets import OCPWidget, ViewToolbar, SelectionToolbar, ViewDirection, ProjectionType, DisplayMode, SelectionMode, GeometryService
 
 
 class CADViewerWindow(QMainWindow):
@@ -135,34 +132,34 @@ class CADViewerWindow(QMainWindow):
         # Clear existing shapes
         self.viewer.erase_all()
 
-        # Create and display various shapes using utility functions
+        # Create a geometry service for shape creation
+        geo = GeometryService()
+
+        # Create and display various shapes
         
         # 1. Box at origin
-        box = create_box(50, 50, 50)
+        box = geo.create_box(50, 50, 50)
         self.viewer.display_shape(box, color=(0.7, 0.2, 0.2), update=False)
 
         # 2. Sphere
-        sphere = create_sphere(30)
-        sphere_translated = translate_shape(sphere, 100, 0, 25)
+        sphere = geo.create_sphere(30)
+        sphere_translated = geo.translate_shape(sphere, 100, 0, 25)
         self.viewer.display_shape(sphere_translated, color=(0.2, 0.7, 0.2), update=False)
 
         # 3. Cylinder
-        axis = gp_Ax2(gp_Pnt(0, 100, 0), gp_Dir(0, 0, 1))
-        cylinder = create_cylinder(20, 60, axis)
+        cylinder = geo.create_cylinder(20, 60, position=(0, 100, 0), direction=(0, 0, 1))
         self.viewer.display_shape(cylinder, color=(0.2, 0.2, 0.7), update=False)
 
         # 4. Cone
-        cone_axis = gp_Ax2(gp_Pnt(100, 100, 0), gp_Dir(0, 0, 1))
-        cone = create_cone(30, 5, 70, cone_axis)
+        cone = geo.create_cone(30, 5, 70, position=(100, 100, 0), direction=(0, 0, 1))
         self.viewer.display_shape(cone, color=(0.7, 0.7, 0.2), update=False)
 
         # 5. Torus
-        torus_axis = gp_Ax2(gp_Pnt(-80, 0, 30), gp_Dir(0, 1, 0))
-        torus = create_torus(25, 10, torus_axis)
+        torus = geo.create_torus(25, 10, position=(-80, 0, 30), direction=(0, 1, 0))
         self.viewer.display_shape(torus, color=(0.7, 0.2, 0.7), update=False)
 
         # 6. Transparent box
-        box2 = create_box(40, 40, 80, gp_Pnt(-80, -80, 0))
+        box2 = geo.create_box(40, 40, 80, position=(-80, -80, 0))
         self.viewer.display_shape(box2, color=(0.2, 0.7, 0.7), transparency=0.6, update=False)
 
         # Fit all shapes in view

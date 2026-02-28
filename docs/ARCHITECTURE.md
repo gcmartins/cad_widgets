@@ -107,16 +107,24 @@ Helper functions for creating and manipulating OpenCascade shapes.
 - `create_sphere(radius, center)` - Create sphere
 - `create_cylinder(radius, height, axis)` - Create cylinder
 - `create_cone(radius1, radius2, height, axis)` - Create cone
-- `create_torus(major_radius, minor_radius, axis)` - Create torus
+- `create_torus(major_radius, minor_radius, position, direction)` - Create torus
 - `translate_shape(shape, dx, dy, dz)` - Translate shape
 
 **Usage**:
 ```python
-from cad_widgets.utils import create_box, create_sphere, translate_shape
+from cad_widgets import GeometryService
 
-box = create_box(100, 50, 75)
-sphere = create_sphere(30)
-sphere_moved = translate_shape(sphere, 100, 0, 0)
+geo = GeometryService()
+
+# Create shapes with default position
+box = geo.create_box(100, 50, 75)
+sphere = geo.create_sphere(30)
+
+# Transform shapes
+sphere_moved = geo.translate_shape(sphere, 100, 0, 0)
+
+# Create shapes with custom position and direction using tuples
+cylinder = geo.create_cylinder(20, 60, position=(0, 0, 0), direction=(1, 0, 0))
 ```
 
 ## Architecture Patterns
@@ -232,18 +240,22 @@ pytest tests/ --cov=cad_widgets
 
 ## Best Practices
 
-### 1. Use Shape Utilities
+### 1. Use GeometryService
 
-Prefer utility functions over direct OCP calls:
+Prefer GeometryService over direct OCP calls for shape creation:
 
 ```python
-# Good
-from cad_widgets.utils import create_box
-box = create_box(100, 100, 100)
+# Good - Clean Python API with tuples
+from cad_widgets import GeometryService
+geo = GeometryService()
+box = geo.create_box(100, 100, 100)
+cylinder = geo.create_cylinder(20, 60, position=(0, 0, 0), direction=(0, 0, 1))
 
-# Works but less readable
+# Works but less readable and requires OCP knowledge
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
+from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir
 box = BRepPrimAPI_MakeBox(100, 100, 100).Shape()
+axis = gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1))
 ```
 
 ### 2. Connect Signals for Modular Design

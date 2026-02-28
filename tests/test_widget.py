@@ -6,8 +6,7 @@ import sys
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode, SelectionMode
-from cad_widgets.utils import create_box
+from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode, SelectionMode, GeometryService
 from OCP.AIS import AIS_ListOfInteractive
 
 
@@ -38,7 +37,7 @@ def test_widget_creation(qapp):
 def test_display_shape(qapp):
     """Test displaying a shape."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     
     ais_shape = widget.display_shape(box, color=(0.8, 0.2, 0.2))
     assert ais_shape is not None
@@ -66,7 +65,7 @@ def test_projection_types(qapp):
 def test_display_modes(qapp):
     """Test setting display modes."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     ctx = widget.get_context()
     
@@ -86,7 +85,7 @@ def test_display_modes(qapp):
 def test_standard_views(qapp):
     """Test standard view projections."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -113,7 +112,7 @@ def test_standard_views(qapp):
 def test_erase_all(qapp):
     """Test clearing all shapes."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     ctx = widget.get_context()
@@ -126,7 +125,7 @@ def test_erase_all(qapp):
 def test_fit_all(qapp):
     """Test fit all operation."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     widget.fit_all()
@@ -140,9 +139,9 @@ def test_multiple_shapes(qapp):
     widget = OCPWidget()
     ctx = widget.get_context()
     
-    box1 = create_box(100, 100, 100)
-    box2 = create_box(50, 50, 50)
-    box3 = create_box(25, 25, 25)
+    box1 = GeometryService().create_box(100, 100, 100)
+    box2 = GeometryService().create_box(50, 50, 50)
+    box3 = GeometryService().create_box(25, 25, 25)
     
     widget.display_shape(box1)
     assert get_displayed_count(ctx) == 1
@@ -161,7 +160,7 @@ def test_multiple_shapes(qapp):
 def test_display_shape_with_transparency(qapp):
     """Test displaying a shape with transparency."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     
     ais_shape = widget.display_shape(box, transparency=0.5)
     assert ais_shape is not None
@@ -170,14 +169,14 @@ def test_display_shape_with_transparency(qapp):
 def test_display_shape_with_display_mode(qapp):
     """Test displaying a shape with specific display mode."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     
     # Test with wireframe mode
     ais_shape = widget.display_shape(box, display_mode=DisplayMode.WIREFRAME)
     assert ais_shape is not None
     
     # Test with shaded mode
-    box2 = create_box(50, 50, 50)
+    box2 = GeometryService().create_box(50, 50, 50)
     ais_shape2 = widget.display_shape(box2, display_mode=DisplayMode.SHADED)
     assert ais_shape2 is not None
 
@@ -206,7 +205,7 @@ def test_get_context(qapp):
 def test_update_display(qapp):
     """Test update display method."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Should not raise an error
@@ -223,7 +222,7 @@ def test_widget_minimum_size(qapp):
 def test_display_without_update(qapp):
     """Test displaying a shape without updating."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     
     ais_shape = widget.display_shape(box, update=False)
     assert ais_shape is not None
@@ -235,7 +234,7 @@ def test_display_without_update(qapp):
 def test_iso_view(qapp):
     """Test isometric view projection."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -251,7 +250,7 @@ def test_iso_view(qapp):
 def test_left_view(qapp):
     """Test left view projection."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -263,7 +262,7 @@ def test_left_view(qapp):
 def test_back_view(qapp):
     """Test back view projection."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -275,7 +274,7 @@ def test_back_view(qapp):
 def test_bottom_view(qapp):
     """Test bottom view projection."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -287,7 +286,7 @@ def test_bottom_view(qapp):
 def test_display_shape_default_color(qapp):
     """Test displaying a shape with default color (None)."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     
     ais_shape = widget.display_shape(box, color=None)
     assert ais_shape is not None
@@ -341,7 +340,7 @@ def test_disable_selection(qapp):
 def test_clear_selection(qapp):
     """Test clearing selection."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Clear selection should not raise an error
@@ -351,7 +350,7 @@ def test_clear_selection(qapp):
 def test_get_selected_shapes_empty(qapp):
     """Test getting selected shapes when nothing is selected."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     selected = widget.get_selected_shapes()
@@ -362,7 +361,7 @@ def test_get_selected_shapes_empty(qapp):
 def test_selection_mode_all_types(qapp):
     """Test all selection mode types."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     modes = [
@@ -380,7 +379,7 @@ def test_selection_mode_all_types(qapp):
 def test_selection_enabled_toggle(qapp):
     """Test toggling selection on and off."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Start enabled (default)
@@ -403,9 +402,9 @@ def test_selection_mode_with_multiple_shapes(qapp):
     """Test selection mode setting with multiple shapes displayed."""
     widget = OCPWidget()
     
-    box1 = create_box(100, 100, 100)
-    box2 = create_box(50, 50, 50)
-    box3 = create_box(25, 25, 25)
+    box1 = GeometryService().create_box(100, 100, 100)
+    box2 = GeometryService().create_box(50, 50, 50)
+    box3 = GeometryService().create_box(25, 25, 25)
     
     widget.display_shape(box1)
     widget.display_shape(box2)
@@ -419,7 +418,7 @@ def test_selection_mode_with_multiple_shapes(qapp):
 def test_clear_selection_multiple_times(qapp):
     """Test clearing selection multiple times."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Should not raise an error when called multiple times
@@ -443,7 +442,7 @@ def test_selection_with_no_shapes(qapp):
 def test_selection_mode_persistence(qapp):
     """Test that selection mode persists through enable/disable cycles."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Set a non-default mode
@@ -461,7 +460,7 @@ def test_selection_mode_persistence(qapp):
 def test_selection_mode_change_clears_selection(qapp):
     """Test changing selection mode operations."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     widget.set_selection_mode(SelectionMode.VOLUME)

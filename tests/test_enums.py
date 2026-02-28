@@ -6,8 +6,7 @@ import sys
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode
-from cad_widgets.utils import create_box
+from cad_widgets import OCPWidget, ViewDirection, ProjectionType, DisplayMode, GeometryService
 
 
 @pytest.fixture(scope="session")
@@ -46,7 +45,7 @@ def test_display_mode_enum_values():
 def test_widget_with_view_direction_enum(qapp):
     """Test using ViewDirection enum with OCPWidget."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     view = widget.get_view()
     
@@ -78,7 +77,7 @@ def test_widget_with_projection_type_enum(qapp):
 def test_widget_with_display_mode_enum(qapp):
     """Test using DisplayMode enum with OCPWidget."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     ctx = widget.get_context()
     
@@ -96,8 +95,8 @@ def test_widget_with_display_mode_enum(qapp):
 def test_display_shape_with_display_mode_enum(qapp):
     """Test displaying a shape with DisplayMode enum."""
     widget = OCPWidget()
-    box1 = create_box(100, 100, 100)
-    box2 = create_box(50, 50, 50)
+    box1 = GeometryService().create_box(100, 100, 100)
+    box2 = GeometryService().create_box(50, 50, 50)
     
     # Test with enum values
     ais_shape1 = widget.display_shape(box1, display_mode=DisplayMode.WIREFRAME)
@@ -118,7 +117,7 @@ def test_enum_string_comparison():
 def test_all_view_directions_with_enum(qapp):
     """Test all view directions using enums."""
     widget = OCPWidget()
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Test all enum values work without error

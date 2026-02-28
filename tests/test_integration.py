@@ -9,9 +9,8 @@ import pytest
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 
-from cad_widgets import OCPWidget, SelectionMode
+from cad_widgets import OCPWidget, SelectionMode, GeometryService
 from cad_widgets.widgets.selection_toolbar import SelectionToolbar
-from cad_widgets.utils import create_box, create_sphere, create_cylinder
 
 
 @pytest.fixture(scope="session")
@@ -92,7 +91,7 @@ def test_toolbar_clears_widget_selection(qapp):
     toolbar.clear_selection_requested.connect(widget.clear_selection)
     
     # Display a shape
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Trigger clear from toolbar
@@ -135,8 +134,8 @@ def test_full_integration_workflow(qapp):
     )
     
     # Display shapes
-    box = create_box(100, 100, 100)
-    sphere = create_sphere(50)
+    box = GeometryService().create_box(100, 100, 100)
+    sphere = GeometryService().create_sphere(50)
     widget.display_shape(box)
     widget.display_shape(sphere)
     
@@ -172,8 +171,8 @@ def test_multiple_mode_changes_with_shapes(qapp):
     )
     
     # Display multiple shapes
-    box = create_box(100, 100, 100)
-    sphere = create_sphere(50)
+    box = GeometryService().create_box(100, 100, 100)
+    sphere = GeometryService().create_sphere(50)
     widget.display_shape(box)
     widget.display_shape(sphere)
     
@@ -198,7 +197,7 @@ def test_disable_enable_cycle_with_mode_changes(qapp):
     toolbar.selection_enabled_changed.connect(widget.set_selection_enabled)
     
     # Display a shape
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Set a mode
@@ -258,7 +257,7 @@ def test_clear_selection_multiple_times_integration(qapp):
     toolbar.clear_selection_requested.connect(widget.clear_selection)
     
     # Display shapes
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Clear multiple times (should not cause errors)
@@ -280,7 +279,7 @@ def test_simultaneous_toolbar_widget_updates(qapp):
     toolbar.selection_enabled_changed.connect(widget.set_selection_enabled)
     
     # Display shapes
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Rapid sequence of changes
@@ -382,8 +381,8 @@ def test_multiple_widgets_single_toolbar(qapp):
     )
     
     # Display shapes in both widgets
-    box1 = create_box(100, 100, 100)
-    box2 = create_box(50, 50, 50)
+    box1 = GeometryService().create_box(100, 100, 100)
+    box2 = GeometryService().create_box(50, 50, 50)
     widget1.display_shape(box1)
     widget2.display_shape(box2)
     
@@ -406,9 +405,9 @@ def test_toolbar_widget_with_all_shape_types(qapp):
     )
     
     # Display various shapes
-    box = create_box(100, 100, 100)
-    sphere = create_sphere(50)
-    cylinder = create_cylinder(30, 80)
+    box = GeometryService().create_box(100, 100, 100)
+    sphere = GeometryService().create_sphere(50)
+    cylinder = GeometryService().create_cylinder(30, 80)
     
     widget.display_shape(box, color=(0.8, 0.2, 0.2))
     widget.display_shape(sphere, color=(0.2, 0.8, 0.2))
@@ -433,7 +432,7 @@ def test_clear_and_reload_shapes(qapp):
     toolbar.clear_selection_requested.connect(widget.clear_selection)
     
     # Display shapes
-    box = create_box(100, 100, 100)
+    box = GeometryService().create_box(100, 100, 100)
     widget.display_shape(box)
     
     # Set selection mode
@@ -446,7 +445,7 @@ def test_clear_and_reload_shapes(qapp):
     assert widget.get_selection_mode() == SelectionMode.SURFACE
     
     # Add new shapes
-    sphere = create_sphere(50)
+    sphere = GeometryService().create_sphere(50)
     widget.display_shape(sphere)
     
     # Selection mode still active
