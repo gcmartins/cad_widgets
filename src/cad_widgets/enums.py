@@ -39,3 +39,13 @@ class SelectionMode(StrEnum):
     SURFACE = "surface"
     EDGE = "edge"
     VERTEX = "vertex"
+
+
+class ShapeType(StrEnum):
+    """Geometry shape types."""
+
+    BOX = "box"
+    SPHERE = "sphere"
+    CYLINDER = "cylinder"
+    CONE = "cone"
+    TORUS = "torus"

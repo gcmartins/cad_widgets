@@ -24,11 +24,21 @@ from cad_widgets import (
     OCPWidget,
     ViewToolbar,
     SelectionToolbar,
+    GeometryTreeWidget,
+    PropertyEditorWidget,
     ViewDirection,
     ProjectionType,
     DisplayMode,
     SelectionMode,
-    GeometryService,
+    ShapeType,
+    GeometryManager,
+    BoxProperties,
+    SphereProperties,
+    CylinderProperties,
+    ConeProperties,
+    TorusProperties,
+    Translation,
+    Rotation,
 )
 
 
@@ -38,7 +48,10 @@ class CADViewerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("OCP PySide6 3D Viewer - Modular Example")
-        self.setGeometry(100, 100, 1200, 700)
+        self.setGeometry(100, 100, 1400, 700)
+
+        # Create geometry manager
+        self.geometry_manager = GeometryManager()
 
         # Create central widget
         central_widget = QWidget()
@@ -54,27 +67,42 @@ class CADViewerWindow(QMainWindow):
         # Create splitter for viewer and toolbar
         splitter = QSplitter(Qt.Horizontal)
 
-        # Create left panel with viewer and selection toolbar
+        # Create left panel with geometry tree and property editor
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Add geometry tree widget
+        self.geometry_tree = GeometryTreeWidget()
+        left_layout.addWidget(self.geometry_tree, stretch=1)
+
+        # Add property editor widget
+        self.property_editor = PropertyEditorWidget()
+        left_layout.addWidget(self.property_editor, stretch=1)
+
+        splitter.addWidget(left_panel)
+
+        # Create middle panel with viewer and selection toolbar
+        middle_panel = QWidget()
+        middle_layout = QVBoxLayout(middle_panel)
+        middle_layout.setContentsMargins(0, 0, 0, 0)
+
         # Create the OCP widget
         self.viewer = OCPWidget()
-        left_layout.addWidget(self.viewer)
+        middle_layout.addWidget(self.viewer)
 
         # Create the selection toolbar (horizontal orientation)
         self.selection_toolbar = SelectionToolbar(orientation="horizontal")
-        left_layout.addWidget(self.selection_toolbar)
+        middle_layout.addWidget(self.selection_toolbar)
 
-        splitter.addWidget(left_panel)
+        splitter.addWidget(middle_panel)
 
         # Create the view toolbar (vertical orientation)
         self.view_toolbar = ViewToolbar(orientation="vertical")
         splitter.addWidget(self.view_toolbar)
 
         # Set splitter sizes (viewer takes most space)
-        splitter.setSizes([900, 300])
+        splitter.setSizes([350, 700, 250])
 
         main_layout.addWidget(splitter)
 
@@ -133,7 +161,7 @@ class CADViewerWindow(QMainWindow):
         )
 
         self.view_toolbar.fit_all_requested.connect(self.viewer.fit_all)
-        self.view_toolbar.clear_requested.connect(self.viewer.erase_all)
+        self.view_toolbar.clear_requested.connect(self._on_clear_all)
 
         # Connect selection toolbar signals
         self.selection_toolbar.selection_mode_changed.connect(
@@ -148,45 +176,147 @@ class CADViewerWindow(QMainWindow):
             self.viewer.clear_selection
         )
 
+        # Connect geometry tree signals
+        self.geometry_tree.shape_visibility_changed.connect(
+            self._on_shape_visibility_changed
+        )
+        self.geometry_tree.shape_selected.connect(self._on_shape_selected)
+
+        # Connect property editor signals
+        self.property_editor.properties_changed.connect(self._on_properties_changed)
+        
+        # Connect geometry manager signals to components
+        self.geometry_manager.shape_created.connect(self.viewer.on_shape_created)
+        self.geometry_manager.shape_created.connect(self.geometry_tree.on_shape_created)
+        self.geometry_manager.shape_updated.connect(self.viewer.on_shape_updated)
+        self.geometry_manager.shape_updated.connect(self.geometry_tree.on_shape_updated)
+        self.geometry_manager.shape_removed.connect(self.viewer.on_shape_removed)
+        self.geometry_manager.shape_removed.connect(self.geometry_tree.on_shape_removed)
+        self.geometry_manager.all_cleared.connect(self.viewer.on_all_cleared)
+        self.geometry_manager.all_cleared.connect(self.geometry_tree.on_all_cleared)
+        self.geometry_manager.all_cleared.connect(self.property_editor.clear_shape)
+
+    def _on_shape_visibility_changed(self, shape_id: str, visible: bool):
+        """Handle shape visibility changes from the geometry tree."""
+        self.viewer.set_shape_visibility(shape_id, visible)
+
+    def _on_shape_selected(self, shape_id: str):
+        """Handle shape selection in the tree."""
+        managed_shape = self.geometry_manager.get_shape(shape_id)
+        if managed_shape:
+            self.property_editor.set_shape(
+                shape_id,
+                managed_shape.shape_type,
+                managed_shape.properties.to_dict()
+            )
+
+    def _on_properties_changed(self, shape_id: str, properties_dict: dict):
+        """Handle property changes from the editor."""
+        managed_shape = self.geometry_manager.get_shape(shape_id)
+        if not managed_shape:
+            return
+
+        try:
+            # Convert dict to properties object
+            properties = self.geometry_manager.properties_from_dict(
+                managed_shape.shape_type,
+                properties_dict
+            )
+            
+            # Update the shape (this will emit shape_updated signal)
+            self.geometry_manager.update_shape(shape_id, properties)
+
+        except Exception as e:
+            print(f"Failed to update shape properties: {e}")
+
+    def _on_clear_all(self):
+        """Handle clear all request from UI."""
+        self.geometry_manager.clear_all()  # This will emit all_cleared signal
+
     def load_example_shapes(self):
         """Load example 3D shapes into the viewer."""
         # Clear existing shapes
-        self.viewer.erase_all()
+        self._on_clear_all()
 
-        # Create a geometry service for shape creation
-        geo = GeometryService()
-
-        # Create and display various shapes
+        # Create shapes - signals will automatically update viewer and tree
 
         # 1. Box at origin
-        box = geo.create_box(50, 50, 50)
-        self.viewer.display_shape(box, color=(0.7, 0.2, 0.2), update=False)
+        self.geometry_manager.create_shape(
+            shape_id="box_1",
+            shape_type=ShapeType.BOX,
+            name="Red Box",
+            color=(0.7, 0.2, 0.2),
+            properties=BoxProperties(
+                width=50, height=50, depth=50,
+                translation=Translation(x=0, y=0, z=0),
+                rotation=Rotation(x=0, y=0, z=0)
+            )
+        )
 
         # 2. Sphere
-        sphere = geo.create_sphere(30)
-        sphere_translated = geo.translate_shape(sphere, 100, 0, 25)
-        self.viewer.display_shape(
-            sphere_translated, color=(0.2, 0.7, 0.2), update=False
+        self.geometry_manager.create_shape(
+            shape_id="sphere_1",
+            shape_type=ShapeType.SPHERE,
+            name="Green Sphere",
+            color=(0.2, 0.7, 0.2),
+            properties=SphereProperties(
+                radius=30,
+                translation=Translation(x=100, y=0, z=25),
+                rotation=Rotation(x=0, y=0, z=0)
+            )
         )
 
         # 3. Cylinder
-        cylinder = geo.create_cylinder(
-            20, 60, position=(0, 100, 0), direction=(0, 0, 1)
+        self.geometry_manager.create_shape(
+            shape_id="cylinder_1",
+            shape_type=ShapeType.CYLINDER,
+            name="Blue Cylinder",
+            color=(0.2, 0.2, 0.7),
+            properties=CylinderProperties(
+                radius=20, height=60,
+                translation=Translation(x=0, y=100, z=0),
+                rotation=Rotation(x=0, y=0, z=0)
+            )
         )
-        self.viewer.display_shape(cylinder, color=(0.2, 0.2, 0.7), update=False)
 
         # 4. Cone
-        cone = geo.create_cone(30, 5, 70, position=(100, 100, 0), direction=(0, 0, 1))
-        self.viewer.display_shape(cone, color=(0.7, 0.7, 0.2), update=False)
+        self.geometry_manager.create_shape(
+            shape_id="cone_1",
+            shape_type=ShapeType.CONE,
+            name="Yellow Cone",
+            color=(0.7, 0.7, 0.2),
+            properties=ConeProperties(
+                radius=30, height=70,
+                translation=Translation(x=100, y=100, z=0),
+                rotation=Rotation(x=0, y=0, z=0)
+            )
+        )
 
         # 5. Torus
-        torus = geo.create_torus(25, 10, position=(-80, 0, 30), direction=(0, 1, 0))
-        self.viewer.display_shape(torus, color=(0.7, 0.2, 0.7), update=False)
+        self.geometry_manager.create_shape(
+            shape_id="torus_1",
+            shape_type=ShapeType.TORUS,
+            name="Magenta Torus",
+            color=(0.7, 0.2, 0.7),
+            properties=TorusProperties(
+                radius=25, length=10,
+                translation=Translation(x=-80, y=0, z=30),
+                rotation=Rotation(x=0, y=90, z=0)
+            )
+        )
 
         # 6. Transparent box
-        box2 = geo.create_box(40, 40, 80, position=(-80, -80, 0))
-        self.viewer.display_shape(
-            box2, color=(0.2, 0.7, 0.7), transparency=0.6, update=False
+        self.geometry_manager.create_shape(
+            shape_id="box_2",
+            shape_type=ShapeType.BOX,
+            name="Cyan Box (Transparent)",
+            color=(0.2, 0.7, 0.7),
+            properties=BoxProperties(
+                width=40, height=40, depth=80,
+                translation=Translation(x=-80, y=-80, z=0),
+                rotation=Rotation(x=0, y=0, z=0)
+            ),
+            transparency=0.6
         )
 
         # Fit all shapes in view

@@ -3,14 +3,37 @@ View Service
 Handles all view-related operations and geometry display for OCP viewer
 """
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
 from OCP.V3d import V3d_View, V3d_Viewer, V3d_TypeOfVisualization
 from OCP.Aspect import Aspect_TypeOfTriedronPosition
 from OCP.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCP.Graphic3d import Graphic3d_Camera
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
+import uuid
 
 from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
+
+
+class ShapeInfo:
+    """Information about a displayed shape."""
+    
+    def __init__(
+        self,
+        shape_id: str,
+        ais_shape: AIS_Shape,
+        shape_type: str = "Shape",
+        name: Optional[str] = None,
+        color: Optional[Tuple[float, float, float]] = None,
+        transparency: float = 0.0,
+        visible: bool = True,
+    ):
+        self.shape_id = shape_id
+        self.ais_shape = ais_shape
+        self.shape_type = shape_type
+        self.name = name
+        self.color = color
+        self.transparency = transparency
+        self.visible = visible
 
 
 class ViewService:
@@ -31,6 +54,7 @@ class ViewService:
         self._viewer = viewer
         self._context = context
         self._is_rendering = False
+        self._shapes: Dict[str, ShapeInfo] = {}  # Shape registry
 
     def setup_initial_view(self):
         """Setup initial view parameters."""
@@ -231,7 +255,10 @@ class ViewService:
         transparency: float = 0.0,
         update: bool = True,
         display_mode: Optional[DisplayMode] = None,
-    ) -> Optional[AIS_Shape]:
+        shape_type: str = "Shape",
+        name: Optional[str] = None,
+        shape_id: Optional[str] = None,
+    ) -> Optional[str]:
         """
         Display an OCP shape in the viewer.
 
@@ -241,11 +268,18 @@ class ViewService:
             transparency: Float 0-1 for transparency
             update: Whether to update the display
             display_mode: DisplayMode enum or None for default
+            shape_type: Type of shape (Box, Sphere, etc.) for identification
+            name: Optional name for the shape
+            shape_id: Optional specific ID for the shape (auto-generated if None)
 
         Returns:
-            AIS_Shape object or None if error
+            str: Shape ID or None if error
         """
         try:
+            # Generate shape ID if not provided
+            if shape_id is None:
+                shape_id = str(uuid.uuid4())
+            
             # Create AIS shape
             ais_shape = AIS_Shape(shape)
 
@@ -269,7 +303,19 @@ class ViewService:
                 elif display_mode == DisplayMode.SHADED:
                     self._context.SetDisplayMode(ais_shape, 1, update)  # 1 = Shaded
 
-            return ais_shape
+            # Store shape information
+            shape_info = ShapeInfo(
+                shape_id=shape_id,
+                ais_shape=ais_shape,
+                shape_type=shape_type,
+                name=name,
+                color=color,
+                transparency=transparency,
+                visible=True,
+            )
+            self._shapes[shape_id] = shape_info
+
+            return shape_id
 
         except Exception as e:
             print(f"Error displaying shape: {e}")
@@ -299,19 +345,23 @@ class ViewService:
         """Remove all shapes from the display."""
         try:
             self._context.RemoveAll(True)
+            self._shapes.clear()
         except Exception as e:
             print(f"Error erasing all shapes: {e}")
 
-    def erase_shape(self, ais_shape: AIS_Shape, update: bool = True):
+    def erase_shape(self, shape_id: str, update: bool = True):
         """
         Remove a specific shape from the display.
 
         Args:
-            ais_shape: AIS_Shape to remove
+            shape_id: ID of the shape to remove
             update: Whether to update display
         """
         try:
-            self._context.Remove(ais_shape, update)
+            if shape_id in self._shapes:
+                shape_info = self._shapes[shape_id]
+                self._context.Remove(shape_info.ais_shape, update)
+                del self._shapes[shape_id]
         except Exception as e:
             print(f"Error erasing shape: {e}")
 
@@ -368,3 +418,70 @@ class ViewService:
                 self._context.Redisplay(ais_shape, True)
         except Exception as e:
             print(f"Error setting shape transparency: {e}")
+
+    # Shape registry methods
+
+    def get_all_shapes(self) -> Dict[str, ShapeInfo]:
+        """
+        Get all registered shapes.
+
+        Returns:
+            Dictionary mapping shape IDs to ShapeInfo objects
+        """
+        return self._shapes.copy()
+
+    def get_shape_info(self, shape_id: str) -> Optional[ShapeInfo]:
+        """
+        Get information about a specific shape.
+
+        Args:
+            shape_id: ID of the shape
+
+        Returns:
+            ShapeInfo object or None if not found
+        """
+        return self._shapes.get(shape_id)
+
+    def set_shape_visibility(self, shape_id: str, visible: bool, update: bool = True):
+        """
+        Set the visibility of a shape.
+
+        Args:
+            shape_id: ID of the shape
+            visible: True to show, False to hide
+            update: Whether to update display
+        """
+        try:
+            if shape_id in self._shapes:
+                shape_info = self._shapes[shape_id]
+                if visible and not shape_info.visible:
+                    self._context.Display(shape_info.ais_shape, update)
+                    shape_info.visible = True
+                elif not visible and shape_info.visible:
+                    self._context.Erase(shape_info.ais_shape, update)
+                    shape_info.visible = False
+        except Exception as e:
+            print(f"Error setting shape visibility: {e}")
+
+    def is_shape_visible(self, shape_id: str) -> bool:
+        """
+        Check if a shape is visible.
+
+        Args:
+            shape_id: ID of the shape
+
+        Returns:
+            True if visible, False otherwise
+        """
+        if shape_id in self._shapes:
+            return self._shapes[shape_id].visible
+        return False
+
+    def get_shape_count(self) -> int:
+        """
+        Get the number of shapes currently managed.
+
+        Returns:
+            Number of shapes
+        """
+        return len(self._shapes)

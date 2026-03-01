@@ -160,6 +160,9 @@ class OCPWidget(QWidget):
         transparency=0.0,
         update=True,
         display_mode: Optional[DisplayMode] = None,
+        shape_type: str = "Shape",
+        name: Optional[str] = None,
+        shape_id: Optional[str] = None,
     ):
         """
         Display an OCP shape in the viewer.
@@ -170,15 +173,18 @@ class OCPWidget(QWidget):
             transparency: Float 0-1 for transparency
             update: Whether to update the display
             display_mode: DisplayMode enum or None for default
+            shape_type: Type of shape (Box, Sphere, etc.) for identification
+            name: Optional name for the shape
+            shape_id: Optional specific ID for the shape (auto-generated if None)
 
         Returns:
-            AIS_Shape object
+            str: Shape ID or None if error
         """
         if not self._view_service:
             return None
 
         return self._view_service.display_shape(
-            shape, color, transparency, update, display_mode
+            shape, color, transparency, update, display_mode, shape_type, name, shape_id
         )
 
     def erase_all(self):
@@ -407,3 +413,136 @@ class OCPWidget(QWidget):
         if self._selection_service:
             return self._selection_service.get_selected_shapes()
         return []
+
+    # Geometry tree integration methods
+
+    def get_all_shapes(self):
+        """
+        Get all registered shapes.
+
+        Returns:
+            Dictionary mapping shape IDs to ShapeInfo objects
+        """
+        if self._view_service:
+            return self._view_service.get_all_shapes()
+        return {}
+
+    def get_shape_info(self, shape_id: str):
+        """
+        Get information about a specific shape.
+
+        Args:
+            shape_id: ID of the shape
+
+        Returns:
+            ShapeInfo object or None if not found
+        """
+        if self._view_service:
+            return self._view_service.get_shape_info(shape_id)
+        return None
+
+    def set_shape_visibility(self, shape_id: str, visible: bool):
+        """
+        Set the visibility of a shape.
+
+        Args:
+            shape_id: ID of the shape
+            visible: True to show, False to hide
+        """
+        if self._view_service:
+            self._view_service.set_shape_visibility(shape_id, visible, True)
+            self.update_display()
+
+    def is_shape_visible(self, shape_id: str) -> bool:
+        """
+        Check if a shape is visible.
+
+        Args:
+            shape_id: ID of the shape
+
+        Returns:
+            True if visible, False otherwise
+        """
+        if self._view_service:
+            return self._view_service.is_shape_visible(shape_id)
+        return False
+
+    def erase_shape(self, shape_id: str):
+        """
+        Remove a specific shape from the display.
+
+        Args:
+            shape_id: ID of the shape to remove
+        """
+        if self._view_service:
+            self._view_service.erase_shape(shape_id, True)
+            self.update_display()
+
+    def get_shape_count(self) -> int:
+        """
+        Get the number of shapes currently displayed.
+
+        Returns:
+            Number of shapes
+        """
+        if self._view_service:
+            return self._view_service.get_shape_count()
+        return 0
+
+    # Geometry Manager signal handlers
+    
+    def on_shape_created(self, shape_id: str, managed_shape):
+        """
+        Handle shape creation from geometry manager.
+        
+        Args:
+            shape_id: ID of the created shape
+            managed_shape: ManagedShape object
+        """
+        self.display_shape(
+            managed_shape.shape,
+            color=managed_shape.color,
+            transparency=managed_shape.transparency,
+            update=False,
+            shape_type=managed_shape.shape_type.value,
+            name=managed_shape.name,
+            shape_id=shape_id
+        )
+    
+    def on_shape_updated(self, shape_id: str, managed_shape):
+        """
+        Handle shape update from geometry manager.
+        
+        Args:
+            shape_id: ID of the updated shape
+            managed_shape: ManagedShape object with updated data
+        """
+        # Remove old shape
+        self.erase_shape(shape_id)
+        
+        # Display updated shape
+        self.display_shape(
+            managed_shape.shape,
+            color=managed_shape.color,
+            transparency=managed_shape.transparency,
+            update=True,
+            shape_type=managed_shape.shape_type.value,
+            name=managed_shape.name,
+            shape_id=shape_id
+        )
+        
+        # Fit view to show changes
+        self.fit_all()
+    
+    def on_shape_removed(self, shape_id: str):
+        """
+        Handle shape removal from geometry manager.
+        
+        Args:
+            shape_id: ID of the removed shape
+        """
+        self.erase_shape(shape_id)
+    
+    def on_all_cleared(self):
+        """Handle all shapes cleared from geometry manager."""
+        self.erase_all()
