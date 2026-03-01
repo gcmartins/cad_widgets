@@ -67,8 +67,8 @@ class ViewService:
             # Set up trihedron (axis indicator)
             self._setup_trihedron()
 
-            # Set projection to perspective
-            self.set_projection_type(ProjectionType.PERSPECTIVE)
+            # Set projection to orthographic by default
+            self.set_projection_type(ProjectionType.ORTHOGRAPHIC)
 
         except Exception as e:
             print(f"Error setting up initial view: {e}")

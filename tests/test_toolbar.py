@@ -35,7 +35,7 @@ def test_toolbar_creation_vertical(qapp):
 def test_default_projection_type(qapp):
     """Test default projection type is perspective."""
     toolbar = ViewToolbar()
-    assert toolbar.get_projection_type() == "perspective"
+    assert toolbar.get_projection_type() == "orthographic"
 
 
 def test_default_display_mode(qapp):
@@ -91,10 +91,10 @@ def test_projection_type_changed_signal(qapp):
         lambda ptype: received_signals.append(ptype)
     )
 
-    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
+    toolbar.set_projection_type(ProjectionType.PERSPECTIVE)
 
     # Should have received the signal
-    assert "orthographic" in received_signals
+    assert "perspective" in received_signals
 
 
 def test_display_mode_changed_signal(qapp):
@@ -148,7 +148,7 @@ def test_multiple_signal_connections(qapp):
 
     # Trigger various events
     toolbar._on_projection_changed(ViewDirection.ISO)
-    toolbar.set_projection_type(ProjectionType.ORTHOGRAPHIC)
+    toolbar.set_projection_type(ProjectionType.PERSPECTIVE)
     toolbar.set_display_mode(DisplayMode.WIREFRAME)
     toolbar._on_fit_all_requested()
     toolbar._on_clear_requested()

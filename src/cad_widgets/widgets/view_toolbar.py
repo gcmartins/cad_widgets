@@ -39,16 +39,18 @@ class ViewToolbar(QWidget):
     fit_all_requested = Signal()
     clear_requested = Signal()
 
-    def __init__(self, parent=None, orientation="horizontal"):
+    def __init__(self, parent=None, orientation="horizontal", show_projection_type=True):
         """
         Initialize the view toolbar.
 
         Args:
             parent: Parent widget
             orientation: 'horizontal' or 'vertical' layout
+            show_projection_type: Whether to show projection type selector (default: True)
         """
         super().__init__(parent)
         self._orientation = orientation
+        self._show_projection_type = show_projection_type
         self._setup_ui()
 
     def _setup_ui(self):
@@ -62,9 +64,10 @@ class ViewToolbar(QWidget):
 
         main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Projection type group
-        proj_type_group = self._create_projection_type_group()
-        main_layout.addWidget(proj_type_group)
+        # Projection type group (optional)
+        if self._show_projection_type:
+            proj_type_group = self._create_projection_type_group()
+            main_layout.addWidget(proj_type_group)
 
         # Display mode group
         display_mode_group = self._create_display_mode_group()
@@ -115,7 +118,7 @@ class ViewToolbar(QWidget):
             ProjectionType.ORTHOGRAPHIC.value.capitalize(),
             ProjectionType.ORTHOGRAPHIC.value,
         )
-        self._proj_type_combo.setCurrentIndex(0)
+        self._proj_type_combo.setCurrentIndex(1)  # Default to Orthographic
         self._proj_type_combo.currentIndexChanged.connect(
             self._on_projection_type_combo_changed
         )
@@ -238,6 +241,8 @@ class ViewToolbar(QWidget):
         Args:
             proj_type: ProjectionType enum
         """
+        if not self._show_projection_type:
+            return  # No-op when projection type selector is not shown
         for i in range(self._proj_type_combo.count()):
             if self._proj_type_combo.itemData(i) == proj_type.value:
                 self._proj_type_combo.setCurrentIndex(i)
@@ -257,6 +262,8 @@ class ViewToolbar(QWidget):
 
     def get_projection_type(self):
         """Get the current projection type."""
+        if not self._show_projection_type:
+            return ProjectionType.ORTHOGRAPHIC.value  # Default when not shown
         return self._proj_type_combo.currentData()
 
     def get_display_mode(self):
