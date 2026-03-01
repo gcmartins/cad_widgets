@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QSplitter,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt
 
@@ -58,13 +59,7 @@ class CADViewerWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
 
-        # Title
-        title_label = QLabel("OCP OpenCascade 3D Viewer - Modular Architecture")
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; padding: 10px;")
-        title_label.setAlignment(Qt.AlignCenter)
-        main_layout.addWidget(title_label)
-
-        # Create splitter for viewer and toolbar
+        # Create splitter for left panel and main viewer area
         splitter = QSplitter(Qt.Horizontal)
 
         # Create left panel with geometry tree and property editor
@@ -82,33 +77,40 @@ class CADViewerWindow(QMainWindow):
 
         splitter.addWidget(left_panel)
 
-        # Create middle panel with viewer and selection toolbar
-        middle_panel = QWidget()
-        middle_layout = QVBoxLayout(middle_panel)
-        middle_layout.setContentsMargins(0, 0, 0, 0)
+        # Create right panel with toolbars and viewer stacked vertically
+        right_panel = QWidget()
+        right_layout = QVBoxLayout(right_panel)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create the OCP widget
-        self.viewer = OCPWidget()
-        middle_layout.addWidget(self.viewer)
+        # Create horizontal layout for toolbars side by side
+        toolbars_layout = QHBoxLayout()
+        
+        # Create the view toolbar (horizontal orientation)
+        self.view_toolbar = ViewToolbar(orientation="horizontal", show_projection_type=False)
+        self.view_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        self.view_toolbar.setMaximumHeight(self.view_toolbar.sizeHint().height())
+        toolbars_layout.addWidget(self.view_toolbar)
 
         # Create the selection toolbar (horizontal orientation)
         self.selection_toolbar = SelectionToolbar(orientation="horizontal")
-        middle_layout.addWidget(self.selection_toolbar)
+        self.selection_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        self.selection_toolbar.setMaximumHeight(self.selection_toolbar.sizeHint().height())
+        toolbars_layout.addWidget(self.selection_toolbar)
+        
+        toolbars_layout.addStretch()  # Push toolbars to the left
+        
+        right_layout.addLayout(toolbars_layout)
 
-        splitter.addWidget(middle_panel)
+        # Create the OCP widget below toolbars
+        self.viewer = OCPWidget()
+        right_layout.addWidget(self.viewer)
 
-        # Create the view toolbar (vertical orientation)
-        self.view_toolbar = ViewToolbar(orientation="vertical")
-        splitter.addWidget(self.view_toolbar)
+        splitter.addWidget(right_panel)
 
-        # Set splitter sizes (viewer takes most space)
-        splitter.setSizes([350, 700, 250])
+        # Set main splitter sizes (left panel width, right panel width)
+        splitter.setSizes([350, 1050])
 
         main_layout.addWidget(splitter)
-
-        # Bottom control panel
-        bottom_panel = self._create_bottom_panel()
-        main_layout.addWidget(bottom_panel)
 
         # Connect toolbar signals to viewer
         self._connect_signals()
@@ -118,28 +120,6 @@ class CADViewerWindow(QMainWindow):
 
         # Load example shapes automatically
         self.load_example_shapes()
-
-    def _create_bottom_panel(self):
-        """Create the bottom control panel."""
-        panel = QWidget()
-        layout = QHBoxLayout(panel)
-
-        # Info label
-        info_label = QLabel(
-            "🖱️ Left Click: Select/Rotate | Middle Click: Pan | Scroll: Zoom | Ctrl/Shift+Click: Multi-select"
-        )
-        info_label.setStyleSheet("padding: 5px; color: #555;")
-        layout.addWidget(info_label)
-
-        layout.addStretch()
-
-        # Load example button
-        btn_example = QPushButton("Load Example Shapes")
-        btn_example.setStyleSheet("padding: 8px 16px; font-weight: bold;")
-        btn_example.clicked.connect(self.load_example_shapes)
-        layout.addWidget(btn_example)
-
-        return panel
 
     def _connect_signals(self):
         """Connect toolbar signals to viewer methods."""
