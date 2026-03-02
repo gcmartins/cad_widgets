@@ -503,7 +503,7 @@ class OCPWidget(QWidget):
             managed_shape.shape,
             color=managed_shape.color,
             transparency=managed_shape.transparency,
-            update=False,
+            update=True,
             shape_type=managed_shape.shape_type.value,
             name=managed_shape.name,
             shape_id=shape_id

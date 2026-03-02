@@ -13,9 +13,12 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QPushButton,
     QHBoxLayout,
+    QMenu,
 )
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QBrush, QIcon, QPixmap
+from PySide6.QtCore import Qt, Signal, QPoint
+from PySide6.QtGui import QColor, QBrush, QIcon, QPixmap, QAction
+
+from ..enums import ShapeType
 
 
 class GeometryTreeWidget(QWidget):
@@ -34,6 +37,7 @@ class GeometryTreeWidget(QWidget):
         shape_selected(str): Emitted when a shape is selected in the tree (shape_id)
         shape_deleted(str): Emitted when a shape is deleted (shape_id)
         clear_all_requested(): Emitted when user requests to clear all shapes
+        shape_creation_requested(ShapeType): Emitted when user requests to create a new shape
     """
 
     # Qt Signals
@@ -41,6 +45,7 @@ class GeometryTreeWidget(QWidget):
     shape_selected = Signal(str)
     shape_deleted = Signal(str)
     clear_all_requested = Signal()
+    shape_creation_requested = Signal(object)  # ShapeType
 
     def __init__(self, parent=None):
         """Initialize the geometry tree widget."""
@@ -73,6 +78,10 @@ class GeometryTreeWidget(QWidget):
         # Configure tree
         self.tree.setAlternatingRowColors(True)
         self.tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+        
+        # Enable context menu
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._on_context_menu)
         
         # Set column widths
         header = self.tree.header()
@@ -304,6 +313,56 @@ class GeometryTreeWidget(QWidget):
         shape_id = item.data(0, Qt.ItemDataRole.UserRole)
         if shape_id:
             self.shape_selected.emit(shape_id)
+    
+    def _on_context_menu(self, position: QPoint):
+        """
+        Handle context menu request.
+        
+        Args:
+            position: Position where the context menu was requested
+        """
+        # Create context menu
+        menu = QMenu(self)
+        
+        # Check if right-clicking on an item
+        item = self.tree.itemAt(position)
+        shape_id = None
+        if item:
+            shape_id = item.data(0, Qt.ItemDataRole.UserRole)
+        
+        # If clicking on a shape, add delete option
+        if shape_id:
+            delete_action = QAction("Delete Shape", self)
+            delete_action.triggered.connect(lambda: self.shape_deleted.emit(shape_id))
+            menu.addAction(delete_action)
+            menu.addSeparator()
+        
+        # Add "Create Shape" submenu
+        create_menu = menu.addMenu("Create Shape")
+        
+        # Add actions for each shape type
+        box_action = QAction("Box", self)
+        box_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.BOX))
+        create_menu.addAction(box_action)
+        
+        sphere_action = QAction("Sphere", self)
+        sphere_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.SPHERE))
+        create_menu.addAction(sphere_action)
+        
+        cylinder_action = QAction("Cylinder", self)
+        cylinder_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.CYLINDER))
+        create_menu.addAction(cylinder_action)
+        
+        cone_action = QAction("Cone", self)
+        cone_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.CONE))
+        create_menu.addAction(cone_action)
+        
+        torus_action = QAction("Torus", self)
+        torus_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.TORUS))
+        create_menu.addAction(torus_action)
+        
+        # Show the menu at the requested position
+        menu.exec_(self.tree.viewport().mapToGlobal(position))
 
     # Geometry Manager signal handlers
     

@@ -161,6 +161,12 @@ class CADViewerWindow(QMainWindow):
             self._on_shape_visibility_changed
         )
         self.geometry_tree.shape_selected.connect(self._on_shape_selected)
+        self.geometry_tree.shape_creation_requested.connect(
+            self._on_shape_creation_requested
+        )
+        self.geometry_tree.shape_deleted.connect(
+            self._on_shape_deleted
+        )
 
         # Connect property editor signals
         self.property_editor.properties_changed.connect(self._on_properties_changed)
@@ -189,6 +195,58 @@ class CADViewerWindow(QMainWindow):
                 managed_shape.shape_type,
                 managed_shape.properties.to_dict()
             )
+    
+    def _on_shape_creation_requested(self, shape_type: ShapeType):
+        """
+        Handle shape creation request from context menu.
+        Creates a new shape with default properties.
+        
+        Args:
+            shape_type: Type of shape to create
+        """
+        import uuid
+        
+        # Generate unique ID
+        shape_id = f"{shape_type.value}_{uuid.uuid4().hex[:8]}"
+        
+        # Default fixed color (light gray-blue)
+        color = (0.7, 0.75, 0.8)
+        
+        # Create properties based on shape type (using defaults)
+        properties_map = {
+            ShapeType.BOX: BoxProperties(),
+            ShapeType.SPHERE: SphereProperties(),
+            ShapeType.CYLINDER: CylinderProperties(),
+            ShapeType.CONE: ConeProperties(),
+            ShapeType.TORUS: TorusProperties(),
+        }
+        
+        properties = properties_map.get(shape_type, BoxProperties())
+        
+        # Create shape name
+        shape_name = f"{shape_type.value.title()} {len(self.geometry_manager._shapes) + 1}"
+        
+        # Create the shape via geometry manager
+        self.geometry_manager.create_shape(
+            shape_id=shape_id,
+            shape_type=shape_type,
+            name=shape_name,
+            color=color,
+            properties=properties
+        )
+    
+    def _on_shape_deleted(self, shape_id: str):
+        """
+        Handle shape deletion request from context menu.
+        
+        Args:
+            shape_id: ID of the shape to delete
+        """
+        # Remove shape via geometry manager (this will emit shape_removed signal)
+        self.geometry_manager.remove_shape(shape_id)
+        
+        # Clear property editor if this shape was being edited
+        self.property_editor.clear_shape()
 
     def _on_properties_changed(self, shape_id: str, properties_dict: dict):
         """Handle property changes from the editor."""
