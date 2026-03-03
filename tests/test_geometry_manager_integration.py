@@ -4,7 +4,6 @@ Tests the signal-based communication and integration between components
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
 from cad_widgets.managers.geometry_manager import GeometryManager
@@ -18,15 +17,6 @@ from cad_widgets.models.shape_properties import (
     Translation,
     Rotation,
 )
-
-
-@pytest.fixture(scope="module")
-def app():
-    """Create QApplication for tests."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
 
 
 @pytest.fixture
@@ -73,7 +63,7 @@ def integrated_system(geometry_manager, ocp_widget, geometry_tree):
     }
 
 
-def test_create_shape_updates_viewer_and_tree(integrated_system, app):
+def test_create_shape_updates_viewer_and_tree(integrated_system, qapp):
     """Test that creating a shape updates both viewer and tree."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -95,7 +85,7 @@ def test_create_shape_updates_viewer_and_tree(integrated_system, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape was created
     assert shape is not None
@@ -109,7 +99,7 @@ def test_create_shape_updates_viewer_and_tree(integrated_system, app):
     assert tree_item is not None
 
 
-def test_update_shape_updates_viewer_and_tree(integrated_system, app):
+def test_update_shape_updates_viewer_and_tree(integrated_system, qapp):
     """Test that updating a shape updates both viewer and tree."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -125,7 +115,7 @@ def test_update_shape_updates_viewer_and_tree(integrated_system, app):
         properties=initial_props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Update shape with new properties
     new_props = BoxProperties(
@@ -136,13 +126,13 @@ def test_update_shape_updates_viewer_and_tree(integrated_system, app):
     )
     manager.update_shape("box_1", new_props)
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify tree reflects update (check for position in properties)
     assert "box_1" in tree.get_shape_ids()
 
 
-def test_remove_shape_removes_from_viewer_and_tree(integrated_system, app):
+def test_remove_shape_removes_from_viewer_and_tree(integrated_system, qapp):
     """Test that removing a shape removes it from both viewer and tree."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -158,7 +148,7 @@ def test_remove_shape_removes_from_viewer_and_tree(integrated_system, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape exists in tree
     assert "sphere_1" in tree.get_shape_ids()
@@ -166,13 +156,13 @@ def test_remove_shape_removes_from_viewer_and_tree(integrated_system, app):
     # Remove shape
     manager.remove_shape("sphere_1")
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape removed from tree
     assert "sphere_1" not in tree.get_shape_ids()
 
 
-def test_clear_all_clears_viewer_and_tree(integrated_system, app):
+def test_clear_all_clears_viewer_and_tree(integrated_system, qapp):
     """Test that clearing all shapes clears both viewer and tree."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -206,7 +196,7 @@ def test_clear_all_clears_viewer_and_tree(integrated_system, app):
         properties=properties3
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify all shapes in tree
     assert len(tree.get_shape_ids()) == 3
@@ -214,13 +204,13 @@ def test_clear_all_clears_viewer_and_tree(integrated_system, app):
     # Clear all
     manager.clear_all()
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify tree is empty
     assert len(tree.get_shape_ids()) == 0
 
 
-def test_multiple_shapes_integration(integrated_system, app):
+def test_multiple_shapes_integration(integrated_system, qapp):
     """Test creating multiple shapes of different types."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -256,7 +246,7 @@ def test_multiple_shapes_integration(integrated_system, app):
         properties=cylinder_props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify all shapes in tree
     shape_ids = tree.get_shape_ids()
@@ -266,7 +256,7 @@ def test_multiple_shapes_integration(integrated_system, app):
     assert "cylinder_1" in shape_ids
 
 
-def test_shape_with_translation_integration(integrated_system, app):
+def test_shape_with_translation_integration(integrated_system, qapp):
     """Test that shapes with translation are correctly handled."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -287,7 +277,7 @@ def test_shape_with_translation_integration(integrated_system, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape in tree
     assert "box_1" in tree.get_shape_ids()
@@ -297,7 +287,7 @@ def test_shape_with_translation_integration(integrated_system, app):
     assert tree_item is not None
 
 
-def test_shape_with_rotation_integration(integrated_system, app):
+def test_shape_with_rotation_integration(integrated_system, qapp):
     """Test that shapes with rotation are correctly handled."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -317,13 +307,13 @@ def test_shape_with_rotation_integration(integrated_system, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape in tree
     assert "cylinder_1" in tree.get_shape_ids()
 
 
-def test_shape_with_transparency_integration(integrated_system, app):
+def test_shape_with_transparency_integration(integrated_system, qapp):
     """Test that shapes are correctly handled - transparency is now global only."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -339,13 +329,13 @@ def test_shape_with_transparency_integration(integrated_system, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify shape in tree
     assert "sphere_1" in tree.get_shape_ids()
 
 
-def test_sequential_operations_integration(integrated_system, app):
+def test_sequential_operations_integration(integrated_system, qapp):
     """Test a sequence of operations on the integrated system."""
     manager = integrated_system['manager']
     integrated_system['viewer']
@@ -361,14 +351,14 @@ def test_sequential_operations_integration(integrated_system, app):
         properties=props1
     )
     
-    app.processEvents()
+    qapp.processEvents()
     assert "box_1" in tree.get_shape_ids()
     
     # Update shape
     props2 = BoxProperties(width=100.0, height=100.0, depth=100.0)
     manager.update_shape("box_1", props2)
     
-    app.processEvents()
+    qapp.processEvents()
     assert "box_1" in tree.get_shape_ids()
     
     # Add another shape
@@ -381,24 +371,24 @@ def test_sequential_operations_integration(integrated_system, app):
         properties=props3
     )
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(tree.get_shape_ids()) == 2
     
     # Remove first shape
     manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     assert "box_1" not in tree.get_shape_ids()
     assert "sphere_1" in tree.get_shape_ids()
     
     # Clear all
     manager.clear_all()
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(tree.get_shape_ids()) == 0
 
 
-def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, app):
+def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, qapp):
     """Test that viewer receives all signals from geometry manager."""
     # Create spies for viewer methods
     created_calls = []
@@ -428,7 +418,7 @@ def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, app):
         properties=props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(created_calls) == 1
     assert created_calls[0][0] == "box_1"
     
@@ -436,14 +426,14 @@ def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, app):
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
     geometry_manager.update_shape("box_1", new_props)
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(updated_calls) == 1
     assert updated_calls[0][0] == "box_1"
     
     # Remove shape
     geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(removed_calls) == 1
     assert removed_calls[0] == "box_1"
     
@@ -457,11 +447,11 @@ def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, app):
     )
     geometry_manager.clear_all()
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(cleared_calls) == 1
 
 
-def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, app):
+def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, qapp):
     """Test that tree receives all signals from geometry manager."""
     # Create spies for tree methods
     created_calls = []
@@ -513,7 +503,7 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, app):
         properties=props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(created_calls) == 1
     assert created_calls[0][0] == "box_1"
     assert "box_1" in geometry_tree.get_shape_ids()
@@ -527,14 +517,14 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, app):
     )
     geometry_manager.update_shape("box_1", new_props)
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(updated_calls) == 1
     assert updated_calls[0][0] == "box_1"
     
     # Remove shape
     geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(removed_calls) == 1
     assert removed_calls[0] == "box_1"
     assert "box_1" not in geometry_tree.get_shape_ids()
@@ -549,12 +539,12 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, app):
     )
     geometry_manager.clear_all()
     
-    app.processEvents()
+    qapp.processEvents()
     assert len(cleared_calls) == 1
     assert len(geometry_tree.get_shape_ids()) == 0
 
 
-def test_viewer_only_integration(geometry_manager, ocp_widget, app):
+def test_viewer_only_integration(geometry_manager, ocp_widget, qapp):
     """Test geometry manager with viewer only (no tree)."""
     # Connect only viewer
     geometry_manager.shape_created.connect(ocp_widget.on_shape_created)
@@ -572,24 +562,24 @@ def test_viewer_only_integration(geometry_manager, ocp_widget, app):
         properties=props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Update shape
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
     geometry_manager.update_shape("box_1", new_props)
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Remove shape
     geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     
     # No errors should occur
     assert True
 
 
-def test_tree_only_integration(geometry_manager, geometry_tree, app):
+def test_tree_only_integration(geometry_manager, geometry_tree, qapp):
     """Test geometry manager with tree only (no viewer)."""
     # Connect only tree
     geometry_manager.shape_created.connect(geometry_tree.on_shape_created)
@@ -607,7 +597,7 @@ def test_tree_only_integration(geometry_manager, geometry_tree, app):
         properties=props
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Verify in tree
     assert "box_1" in geometry_tree.get_shape_ids()
@@ -616,11 +606,11 @@ def test_tree_only_integration(geometry_manager, geometry_tree, app):
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
     geometry_manager.update_shape("box_1", new_props)
     
-    app.processEvents()
+    qapp.processEvents()
     assert "box_1" in geometry_tree.get_shape_ids()
     
     # Remove and verify
     geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     assert "box_1" not in geometry_tree.get_shape_ids()

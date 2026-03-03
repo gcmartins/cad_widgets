@@ -2,22 +2,10 @@
 Tests for ViewToolbar and SelectionToolbar components
 """
 
-import sys
 
-import pytest
-from PySide6.QtWidgets import QApplication
 from cad_widgets.widgets.view_toolbar import ViewToolbar
 from cad_widgets.widgets.selection_toolbar import SelectionToolbar
 from cad_widgets import ViewDirection, ProjectionType, DisplayMode, SelectionMode
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    """Create QApplication for tests."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    yield app
 
 
 def test_toolbar_creation_horizontal(qapp):

@@ -3,18 +3,11 @@ Tests for the GeometryTreeWidget component
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 from cad_widgets import GeometryTreeWidget
 
 
 @pytest.fixture
-def app():
-    """Create QApplication instance for testing."""
-    return QApplication.instance() or QApplication([])
-
-
-@pytest.fixture
-def geometry_tree(app):
+def geometry_tree(qapp):
     """Create a GeometryTreeWidget instance."""
     return GeometryTreeWidget()
 
@@ -32,7 +25,6 @@ def test_add_shape(geometry_tree):
     geometry_tree.add_shape(
         shape_id=shape_id,
         shape_type="Box",
-        color=(0.7, 0.2, 0.2),
         name="Test Box",
     )
 
@@ -48,7 +40,6 @@ def test_add_multiple_shapes(geometry_tree):
         geometry_tree.add_shape(
             shape_id=shape_id,
             shape_type=f"Type{i}",
-            color=(0.5, 0.5, 0.5),
             name=f"Shape {i}",
         )
         shape_ids.append(shape_id)
@@ -64,7 +55,6 @@ def test_remove_shape(geometry_tree):
     geometry_tree.add_shape(
         shape_id=shape_id,
         shape_type="Sphere",
-        color=(0.2, 0.7, 0.2),
         name="Test Sphere",
     )
 
@@ -80,7 +70,6 @@ def test_set_shape_visibility(geometry_tree):
     geometry_tree.add_shape(
         shape_id=shape_id,
         shape_type="Cylinder",
-        color=(0.2, 0.2, 0.7),
         name="Test Cylinder",
     )
 
@@ -103,7 +92,6 @@ def test_clear_all(geometry_tree):
         geometry_tree.add_shape(
             shape_id=f"shape-{i}",
             shape_type="Box",
-            color=(0.5, 0.5, 0.5),
             name=f"Box {i}",
         )
 
@@ -117,14 +105,11 @@ def test_clear_all(geometry_tree):
 def test_add_shape_with_properties(geometry_tree):
     """Test adding a shape with properties."""
     shape_id = "test-shape-props"
-    properties = {"width": "50", "height": "50", "depth": "50"}
 
     geometry_tree.add_shape(
         shape_id=shape_id,
         shape_type="Box",
-        color=(0.7, 0.2, 0.2),
         name="Parametric Box",
-        properties=properties,
     )
 
     assert shape_id in geometry_tree.get_shape_ids()
@@ -137,7 +122,6 @@ def test_update_shape_properties(geometry_tree):
     geometry_tree.add_shape(
         shape_id=shape_id,
         shape_type="Sphere",
-        color=(0.2, 0.7, 0.2),
         name="Dynamic Sphere",
     )
 

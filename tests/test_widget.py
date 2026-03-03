@@ -2,10 +2,7 @@
 Basic tests for OCPWidget
 """
 
-import sys
 
-import pytest
-from PySide6.QtWidgets import QApplication
 from cad_widgets import (
     OCPWidget,
     ViewDirection,
@@ -15,15 +12,6 @@ from cad_widgets import (
     GeometryService,
 )
 from OCP.AIS import AIS_ListOfInteractive
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    """Create QApplication for tests."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    yield app
 
 
 def get_displayed_count(ctx):

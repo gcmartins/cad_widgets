@@ -3,7 +3,6 @@ Tests for GeometryManager
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QSignalSpy
 
 from cad_widgets.managers.geometry_manager import GeometryManager, ManagedShape
@@ -19,15 +18,6 @@ from cad_widgets.models.shape_properties import (
 )
 
 
-@pytest.fixture(scope="module")
-def app():
-    """Create QApplication for tests."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
-
-
 @pytest.fixture
 def geometry_manager():
     """Create a fresh GeometryManager for each test."""
@@ -40,7 +30,7 @@ def test_geometry_manager_initialization(geometry_manager):
     assert len(geometry_manager.get_all_shape_ids()) == 0
 
 
-def test_create_box_shape(geometry_manager, app):
+def test_create_box_shape(geometry_manager, qapp):
     """Test creating a box shape."""
     properties = BoxProperties(
         width=100.0,
@@ -60,7 +50,7 @@ def test_create_box_shape(geometry_manager, app):
         properties=properties
     )
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Check shape was created
     assert shape is not None
@@ -81,7 +71,7 @@ def test_create_box_shape(geometry_manager, app):
     assert managed_shape.properties == properties
 
 
-def test_create_sphere_shape(geometry_manager, app):
+def test_create_sphere_shape(geometry_manager, qapp):
     """Test creating a sphere shape."""
     properties = SphereProperties(
         radius=25.0,
@@ -105,7 +95,7 @@ def test_create_sphere_shape(geometry_manager, app):
     assert managed_shape.properties.radius == 25.0
 
 
-def test_create_cylinder_shape(geometry_manager, app):
+def test_create_cylinder_shape(geometry_manager, qapp):
     """Test creating a cylinder shape."""
     properties = CylinderProperties(
         radius=15.0,
@@ -129,7 +119,7 @@ def test_create_cylinder_shape(geometry_manager, app):
     assert isinstance(managed_shape.properties, CylinderProperties)
 
 
-def test_create_cone_shape(geometry_manager, app):
+def test_create_cone_shape(geometry_manager, qapp):
     """Test creating a cone shape."""
     properties = ConeProperties(
         radius=20.0,
@@ -153,7 +143,7 @@ def test_create_cone_shape(geometry_manager, app):
     assert isinstance(managed_shape.properties, ConeProperties)
 
 
-def test_create_torus_shape(geometry_manager, app):
+def test_create_torus_shape(geometry_manager, qapp):
     """Test creating a torus shape."""
     properties = TorusProperties(
         radius=30.0,
@@ -177,7 +167,7 @@ def test_create_torus_shape(geometry_manager, app):
     assert isinstance(managed_shape.properties, TorusProperties)
 
 
-def test_update_shape(geometry_manager, app):
+def test_update_shape(geometry_manager, qapp):
     """Test updating a shape with new properties."""
     # Create initial shape
     initial_properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
@@ -195,7 +185,7 @@ def test_update_shape(geometry_manager, app):
     new_properties = BoxProperties(width=100.0, height=80.0, depth=60.0)
     updated_shape = geometry_manager.update_shape("box_1", new_properties)
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Check shape was updated
     assert updated_shape is not None
@@ -221,7 +211,7 @@ def test_update_nonexistent_shape(geometry_manager):
     assert result is None
 
 
-def test_remove_shape(geometry_manager, app):
+def test_remove_shape(geometry_manager, qapp):
     """Test removing a shape."""
     # Create shape
     properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
@@ -238,7 +228,7 @@ def test_remove_shape(geometry_manager, app):
     # Remove shape
     result = geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Check removal was successful
     assert result is True
@@ -297,7 +287,7 @@ def test_get_all_shape_ids(geometry_manager):
     assert "cylinder_1" in shape_ids
 
 
-def test_clear_all(geometry_manager, app):
+def test_clear_all(geometry_manager, qapp):
     """Test clearing all shapes."""
     # Create multiple shapes
     properties1 = BoxProperties(width=50.0, height=50.0, depth=50.0)
@@ -324,7 +314,7 @@ def test_clear_all(geometry_manager, app):
     # Clear all
     geometry_manager.clear_all()
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Check all shapes are gone
     assert len(geometry_manager.get_all_shape_ids()) == 0
@@ -515,7 +505,7 @@ def test_properties_from_dict_cylinder():
     assert properties.height == 55.0
 
 
-def test_multiple_signal_emissions(geometry_manager, app):
+def test_multiple_signal_emissions(geometry_manager, qapp):
     """Test that multiple operations emit correct signals."""
     properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
     
@@ -540,7 +530,7 @@ def test_multiple_signal_emissions(geometry_manager, app):
     # Remove shape
     geometry_manager.remove_shape("box_1")
     
-    app.processEvents()
+    qapp.processEvents()
     
     # Check signals
     assert created_spy.count() == 1

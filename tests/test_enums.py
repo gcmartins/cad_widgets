@@ -2,10 +2,7 @@
 Tests for enums
 """
 
-import sys
 
-import pytest
-from PySide6.QtWidgets import QApplication
 from cad_widgets import (
     OCPWidget,
     ViewDirection,
@@ -13,15 +10,6 @@ from cad_widgets import (
     DisplayMode,
     GeometryService,
 )
-
-
-@pytest.fixture(scope="session")
-def qapp():
-    """Create QApplication for tests."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    yield app
 
 
 def test_view_direction_enum_values():

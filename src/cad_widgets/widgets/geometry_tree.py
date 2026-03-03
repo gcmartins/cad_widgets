@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QLabel,
     QHeaderView,
-    QHBoxLayout,
     QMenu,
 )
 from PySide6.QtCore import Qt, Signal, QPoint

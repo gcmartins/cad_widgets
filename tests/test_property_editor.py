@@ -3,19 +3,12 @@ Tests for the PropertyEditorWidget component
 """
 
 import pytest
-from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QSignalSpy
 from cad_widgets import PropertyEditorWidget
 
 
 @pytest.fixture
-def app():
-    """Create QApplication instance for testing."""
-    return QApplication.instance() or QApplication([])
-
-
-@pytest.fixture
-def property_editor(app):
+def property_editor(qapp):
     """Create a PropertyEditorWidget instance."""
     editor = PropertyEditorWidget()
     editor.show()  # Show widget so visibility checks work correctly
@@ -182,7 +175,7 @@ def test_get_current_properties_sphere(property_editor):
     assert "depth" not in current_props
 
 
-def test_signal_emission_on_value_change(property_editor, app):
+def test_signal_emission_on_value_change(property_editor, qapp):
     """Test that properties_changed signal is emitted when values change."""
     properties = {
         "width": 50.0,
@@ -199,7 +192,7 @@ def test_signal_emission_on_value_change(property_editor, app):
     # Change a value and trigger editingFinished (simulates pressing Enter)
     property_editor.size_spinboxes["width"].setValue(100.0)
     property_editor.size_spinboxes["width"].editingFinished.emit()
-    app.processEvents()  # Process pending signals
+    qapp.processEvents()  # Process pending signals
     
     # Check signal was emitted
     assert spy.count() == 1
@@ -229,7 +222,7 @@ def test_signal_not_emitted_during_loading(property_editor):
     assert spy.count() == 0
 
 
-def test_translation_value_changes(property_editor, app):
+def test_translation_value_changes(property_editor, qapp):
     """Test changing translation values."""
     properties = {
         "width": 50.0,
@@ -245,14 +238,14 @@ def test_translation_value_changes(property_editor, app):
     # Change translation X and trigger editingFinished
     property_editor.trans_x.setValue(50.0)
     property_editor.trans_x.editingFinished.emit()
-    app.processEvents()  # Process pending signals
+    qapp.processEvents()  # Process pending signals
     
     assert spy.count() == 1
     signal_args = spy.at(0)
     assert signal_args[1]["translation"]["x"] == 50.0
 
 
-def test_rotation_value_changes(property_editor, app):
+def test_rotation_value_changes(property_editor, qapp):
     """Test changing rotation values."""
     properties = {
         "radius": 25.0,
@@ -266,14 +259,14 @@ def test_rotation_value_changes(property_editor, app):
     # Change rotation Y and trigger editingFinished
     property_editor.rot_y.setValue(45.0)
     property_editor.rot_y.editingFinished.emit()
-    app.processEvents()  # Process pending signals
+    qapp.processEvents()  # Process pending signals
     
     assert spy.count() == 1
     signal_args = spy.at(0)
     assert signal_args[1]["rotation"]["y"] == 45.0
 
 
-def test_multiple_value_changes(property_editor, app):
+def test_multiple_value_changes(property_editor, qapp):
     """Test multiple value changes emit multiple signals."""
     properties = {
         "width": 50.0,
@@ -296,7 +289,7 @@ def test_multiple_value_changes(property_editor, app):
     property_editor.trans_x.setValue(10.0)
     property_editor.trans_x.editingFinished.emit()
     
-    app.processEvents()  # Process pending signals
+    qapp.processEvents()  # Process pending signals
     
     # Should have emitted 3 signals
     assert spy.count() == 3
