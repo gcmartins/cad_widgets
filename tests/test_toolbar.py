@@ -122,18 +122,6 @@ def test_fit_all_signal(qapp):
     assert len(signal_received) == 1
 
 
-def test_clear_signal(qapp):
-    """Test clear signal emission."""
-    toolbar = ViewToolbar()
-
-    signal_received = []
-    toolbar.clear_requested.connect(lambda: signal_received.append(True))
-
-    toolbar._on_clear_requested()
-
-    assert len(signal_received) == 1
-
-
 def test_multiple_signal_connections(qapp):
     """Test that multiple signals work together."""
     toolbar = ViewToolbar()
@@ -144,20 +132,17 @@ def test_multiple_signal_connections(qapp):
     toolbar.projection_type_changed.connect(lambda pt: events.append(("proj_type", pt)))
     toolbar.display_mode_changed.connect(lambda dm: events.append(("display_mode", dm)))
     toolbar.fit_all_requested.connect(lambda: events.append(("fit_all", None)))
-    toolbar.clear_requested.connect(lambda: events.append(("clear", None)))
 
     # Trigger various events
     toolbar._on_projection_changed(ViewDirection.ISO)
     toolbar.set_projection_type(ProjectionType.PERSPECTIVE)
     toolbar.set_display_mode(DisplayMode.WIREFRAME)
     toolbar._on_fit_all_requested()
-    toolbar._on_clear_requested()
 
     # Check that we received signals
-    assert len(events) >= 5
+    assert len(events) >= 4
     assert ("projection", "iso") in events
     assert ("fit_all", None) in events
-    assert ("clear", None) in events
 
 
 def test_case_insensitive_setters(qapp):

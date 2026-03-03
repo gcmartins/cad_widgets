@@ -13,7 +13,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QGroupBox,
     QFrame,
-    QLabel,
 )
 from PySide6.QtCore import Signal
 
@@ -202,12 +201,6 @@ class ViewToolbar(QWidget):
         btn_fit.clicked.connect(self._on_fit_all_requested)
         layout.addWidget(btn_fit)
 
-        # Clear button
-        btn_clear = QPushButton("Clear")
-        btn_clear.setToolTip("Remove all objects from view")
-        btn_clear.clicked.connect(self._on_clear_requested)
-        layout.addWidget(btn_clear)
-
         return group
 
     # Signal emission methods
@@ -228,10 +221,6 @@ class ViewToolbar(QWidget):
     def _on_fit_all_requested(self):
         """Handle fit all request."""
         self.fit_all_requested.emit()
-
-    def _on_clear_requested(self):
-        """Handle clear request."""
-        self.clear_requested.emit()
 
     # Public methods for programmatic control
     def set_projection_type(self, proj_type: ProjectionType):

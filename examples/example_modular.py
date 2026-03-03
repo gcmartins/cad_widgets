@@ -141,7 +141,6 @@ class CADViewerWindow(QMainWindow):
         )
 
         self.view_toolbar.fit_all_requested.connect(self.viewer.fit_all)
-        self.view_toolbar.clear_requested.connect(self._on_clear_all)
 
         # Connect selection toolbar signals
         self.selection_toolbar.selection_mode_changed.connect(
