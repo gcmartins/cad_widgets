@@ -2,8 +2,8 @@
 Shape property classes for structured data handling
 """
 
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Any, Union
+from dataclasses import dataclass, field
+from typing import Dict, Any
 
 
 @dataclass

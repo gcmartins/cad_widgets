@@ -7,7 +7,6 @@ import sys
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer
 
 from cad_widgets import OCPWidget, SelectionMode, GeometryService
 from cad_widgets.widgets.selection_toolbar import SelectionToolbar

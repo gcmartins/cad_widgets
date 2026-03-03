@@ -3,7 +3,7 @@ Selection Service
 Handles all selection-related operations for OCP viewer
 """
 
-from typing import List, Optional
+from typing import List
 from OCP.AIS import AIS_InteractiveContext
 from OCP.V3d import V3d_View
 from OCP.Quantity import Quantity_Color, Quantity_NOC_ORANGE, Quantity_NOC_CYAN1

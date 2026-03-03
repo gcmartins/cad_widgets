@@ -5,7 +5,6 @@ Tests the signal-based communication and integration between components
 
 import pytest
 from PySide6.QtWidgets import QApplication
-from PySide6.QtTest import QSignalSpy
 from PySide6.QtCore import Qt
 
 from cad_widgets.managers.geometry_manager import GeometryManager

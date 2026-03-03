@@ -7,16 +7,14 @@ from typing import Optional, Dict, Any
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QHBoxLayout,
     QFormLayout,
     QLabel,
-    QPushButton,
     QDoubleSpinBox,
     QGroupBox,
     QScrollArea,
     QFrame,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 
 
 class PropertyEditorWidget(QWidget):

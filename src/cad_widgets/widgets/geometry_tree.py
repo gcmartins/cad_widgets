@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
     QLabel,
     QHeaderView,
-    QPushButton,
     QHBoxLayout,
     QMenu,
 )

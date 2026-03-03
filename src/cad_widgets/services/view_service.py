@@ -3,7 +3,7 @@ View Service
 Handles all view-related operations and geometry display for OCP viewer
 """
 
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Tuple, Dict
 from OCP.V3d import V3d_View, V3d_Viewer, V3d_TypeOfVisualization
 from OCP.Aspect import Aspect_TypeOfTriedronPosition
 from OCP.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB

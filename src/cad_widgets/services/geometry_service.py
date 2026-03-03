@@ -4,7 +4,7 @@ Handles shape creation and management operations
 Provides high-level API for creating and manipulating 3D shapes
 """
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeSphere,
