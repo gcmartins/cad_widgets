@@ -318,6 +318,16 @@ class GeometryTreeWidget(QWidget):
         if shape_id:
             self.shape_selected.emit(shape_id)
     
+    def _delete_selected_shapes(self, shape_ids: List[str]):
+        """
+        Delete multiple selected shapes.
+        
+        Args:
+            shape_ids: List of shape IDs to delete
+        """
+        for shape_id in shape_ids:
+            self.shape_deleted.emit(shape_id)
+    
     def _on_context_menu(self, position: QPoint):
         """
         Handle context menu request.
@@ -341,11 +351,19 @@ class GeometryTreeWidget(QWidget):
         shape_id = None
         if item:
             shape_id = item.data(0, Qt.ItemDataRole.UserRole)
+            # If clicking on an item that's not selected, use only that item
+            if shape_id and shape_id not in selected_shape_ids:
+                selected_shape_ids = [shape_id]
         
-        # If clicking on a shape, add delete option
-        if shape_id:
-            delete_action = QAction("Delete Shape", self)
-            delete_action.triggered.connect(lambda: self.shape_deleted.emit(shape_id))
+        # If there are shapes to delete, add delete option
+        if len(selected_shape_ids) > 0:
+            if len(selected_shape_ids) == 1:
+                delete_label = "Delete Shape"
+            else:
+                delete_label = f"Delete {len(selected_shape_ids)} Shapes"
+            
+            delete_action = QAction(delete_label, self)
+            delete_action.triggered.connect(lambda: self._delete_selected_shapes(selected_shape_ids))
             menu.addAction(delete_action)
             menu.addSeparator()
         
