@@ -158,7 +158,6 @@ class OCPWidget(QWidget):
         shape,
         color=None,
         update=True,
-        display_mode: Optional[DisplayMode] = None,
         shape_type: str = "Shape",
         name: Optional[str] = None,
         shape_id: Optional[str] = None,
@@ -170,7 +169,6 @@ class OCPWidget(QWidget):
             shape: OCP TopoDS_Shape object
             color: Tuple of RGB values (0-1) or None for default
             update: Whether to update the display
-            display_mode: DisplayMode enum or None for default
             shape_type: Type of shape (Box, Sphere, etc.) for identification
             name: Optional name for the shape
             shape_id: Optional specific ID for the shape (auto-generated if None)
@@ -182,7 +180,7 @@ class OCPWidget(QWidget):
             return None
 
         return self._view_service.display_shape(
-            shape, color, update, display_mode, shape_type, name, shape_id
+            shape, color, update, shape_type, name, shape_id
         )
 
     def erase_all(self):

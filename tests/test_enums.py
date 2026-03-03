@@ -95,7 +95,8 @@ def test_widget_with_display_mode_enum(qapp):
     assert ctx.DisplayMode() == 1
 
     widget.set_display_mode(DisplayMode.BOTH)
-    assert ctx.DisplayMode() == 2
+    # BOTH mode uses shaded (1) with face boundaries enabled
+    assert ctx.DisplayMode() == 1
 
 
 def test_display_shape_with_display_mode_enum(qapp):
@@ -104,11 +105,13 @@ def test_display_shape_with_display_mode_enum(qapp):
     box1 = GeometryService().create_box(100, 100, 100)
     box2 = GeometryService().create_box(50, 50, 50)
 
-    # Test with enum values
-    ais_shape1 = widget.display_shape(box1, display_mode=DisplayMode.WIREFRAME)
+    # Test with enum values - set mode globally before displaying
+    widget.set_display_mode(DisplayMode.WIREFRAME)
+    ais_shape1 = widget.display_shape(box1)
     assert ais_shape1 is not None
 
-    ais_shape2 = widget.display_shape(box2, display_mode=DisplayMode.SHADED)
+    widget.set_display_mode(DisplayMode.SHADED)
+    ais_shape2 = widget.display_shape(box2)
     assert ais_shape2 is not None
 
 

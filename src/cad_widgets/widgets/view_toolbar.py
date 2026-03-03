@@ -142,12 +142,15 @@ class ViewToolbar(QWidget):
         # Create combo box
         self._display_mode_combo = QComboBox()
         self._display_mode_combo.addItem(
+            DisplayMode.WIREFRAME.value.capitalize(), DisplayMode.WIREFRAME.value
+        )
+        self._display_mode_combo.addItem(
             DisplayMode.SHADED.value.capitalize(), DisplayMode.SHADED.value
         )
         self._display_mode_combo.addItem(
-            DisplayMode.WIREFRAME.value.capitalize(), DisplayMode.WIREFRAME.value
+            "Shaded + Wireframe", DisplayMode.BOTH.value
         )
-        self._display_mode_combo.setCurrentIndex(0)
+        self._display_mode_combo.setCurrentIndex(1)
         self._display_mode_combo.currentIndexChanged.connect(
             self._on_display_mode_combo_changed
         )

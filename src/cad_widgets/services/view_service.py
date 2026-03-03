@@ -9,6 +9,8 @@ from OCP.Aspect import Aspect_TypeOfTriedronPosition
 from OCP.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCP.Graphic3d import Graphic3d_Camera
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
+from OCP.Prs3d import Prs3d_LineAspect
+from OCP.Aspect import Aspect_TOL_SOLID
 import uuid
 
 from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
@@ -54,6 +56,7 @@ class ViewService:
         self._is_rendering = False
         self._shapes: Dict[str, ShapeInfo] = {}  # Shape registry
         self._global_transparency: float = 0.0  # Track global transparency setting
+        self._current_display_mode: DisplayMode = DisplayMode.SHADED  # Track current display mode
 
     def setup_initial_view(self):
         """Setup initial view parameters."""
@@ -247,12 +250,33 @@ class ViewService:
 
     # Geometry display methods
 
+    def _configure_shape_edges(self, ais_shape: AIS_Shape, enable: bool):
+        """
+        Configure edge display for a shape.
+
+        Args:
+            ais_shape: The AIS shape to configure
+            enable: True to enable edges (for BOTH mode), False to disable
+        """
+        drawer = ais_shape.Attributes()
+        drawer.SetFaceBoundaryDraw(enable)
+        
+        if enable:
+            # Create line aspect for edges (black solid lines)
+            edge_aspect = Prs3d_LineAspect(
+                Quantity_Color(0.0, 0.0, 0.0, Quantity_TOC_RGB),
+                Aspect_TOL_SOLID,
+                1.0
+            )
+            drawer.SetFaceBoundaryAspect(edge_aspect)
+        
+        ais_shape.SetAttributes(drawer)
+
     def display_shape(
         self,
         shape,
         color: Optional[Tuple[float, float, float]] = None,
         update: bool = True,
-        display_mode: Optional[DisplayMode] = None,
         shape_type: str = "Shape",
         name: Optional[str] = None,
         shape_id: Optional[str] = None,
@@ -264,7 +288,6 @@ class ViewService:
             shape: OCP TopoDS_Shape object
             color: Tuple of RGB values (0-1) or None for default
             update: Whether to update the display
-            display_mode: DisplayMode enum or None for default
             shape_type: Type of shape (Box, Sphere, etc.) for identification
             name: Optional name for the shape
             shape_id: Optional specific ID for the shape (auto-generated if None)
@@ -290,15 +313,15 @@ class ViewService:
             if self._global_transparency > 0:
                 ais_shape.SetTransparency(self._global_transparency)
 
-            # Display the shape
+            # Display the shape - inherits global display mode
             self._context.Display(ais_shape, update)
 
-            # Set display mode if specified
-            if display_mode:
-                if display_mode == DisplayMode.WIREFRAME:
-                    self._context.SetDisplayMode(ais_shape, 0, update)  # 0 = Wireframe
-                elif display_mode == DisplayMode.SHADED:
-                    self._context.SetDisplayMode(ais_shape, 1, update)  # 1 = Shaded
+            # Only handle special attributes for BOTH mode (shaded with edges)
+            # Wireframe and Shaded modes are handled globally by the context
+            if self._current_display_mode == DisplayMode.BOTH:
+                # Enable facet boundaries for shaded with edges
+                self._configure_shape_edges(ais_shape, True)
+                self._context.Redisplay(ais_shape, update)
 
             # Store shape information
             shape_info = ShapeInfo(
@@ -319,21 +342,37 @@ class ViewService:
 
     def set_display_mode(self, mode: DisplayMode):
         """
-        Set the display mode for all shapes.
+        Set the display mode globally for all shapes.
 
         Args:
             mode: DisplayMode enum
         """
+        # Store the current display mode
+        self._current_display_mode = mode
+        
         try:
             if mode == DisplayMode.WIREFRAME:
-                # Display mode 0 = Wireframe
-                self._context.SetDisplayMode(0, True)
+                # Set global display mode to wireframe
+                self._context.SetDisplayMode(0, False)
+                # Disable facet boundaries on all shapes (in case they were enabled)
+                for shape_info in self._shapes.values():
+                    self._configure_shape_edges(shape_info.ais_shape, False)
+                    self._context.Redisplay(shape_info.ais_shape, False)
             elif mode == DisplayMode.BOTH:
-                # Display mode 2 = Both shaded and wireframe
-                self._context.SetDisplayMode(2, True)
+                # Set global display mode to shaded
+                self._context.SetDisplayMode(1, False)
+                # Enable facet boundaries on all shapes for shaded with edges
+                for shape_info in self._shapes.values():
+                    self._configure_shape_edges(shape_info.ais_shape, True)
+                    self._context.Redisplay(shape_info.ais_shape, False)
             else:  # shaded
-                # Display mode 1 = Shaded
-                self._context.SetDisplayMode(1, True)
+                # Set global display mode to shaded
+                self._context.SetDisplayMode(1, False)
+                # Disable facet boundaries on all shapes
+                for shape_info in self._shapes.values():
+                    self._configure_shape_edges(shape_info.ais_shape, False)
+                    self._context.Redisplay(shape_info.ais_shape, False)
+            self._context.UpdateCurrentViewer()
         except Exception as e:
             print(f"Error setting display mode: {e}")
 

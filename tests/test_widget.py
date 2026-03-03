@@ -84,9 +84,10 @@ def test_display_modes(qapp):
     widget.set_display_mode(DisplayMode.WIREFRAME)
     assert ctx.DisplayMode() == 0
 
-    # Test both mode (mode 2)
+    # Test both mode (shaded with edges)
     widget.set_display_mode(DisplayMode.BOTH)
-    assert ctx.DisplayMode() == 2
+    # BOTH mode uses shaded (1) with face boundaries enabled
+    assert ctx.DisplayMode() == 1
 
 
 def test_standard_views(qapp):
@@ -183,13 +184,15 @@ def test_display_shape_with_display_mode(qapp):
     widget = OCPWidget()
     box = GeometryService().create_box(100, 100, 100)
 
-    # Test with wireframe mode
-    ais_shape = widget.display_shape(box, display_mode=DisplayMode.WIREFRAME)
+    # Test with wireframe mode - set mode globally before displaying
+    widget.set_display_mode(DisplayMode.WIREFRAME)
+    ais_shape = widget.display_shape(box)
     assert ais_shape is not None
 
     # Test with shaded mode
+    widget.set_display_mode(DisplayMode.SHADED)
     box2 = GeometryService().create_box(50, 50, 50)
-    ais_shape2 = widget.display_shape(box2, display_mode=DisplayMode.SHADED)
+    ais_shape2 = widget.display_shape(box2)
     assert ais_shape2 is not None
 
 
