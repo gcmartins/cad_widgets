@@ -24,7 +24,6 @@ class ShapeInfo:
         shape_type: str = "Shape",
         name: Optional[str] = None,
         color: Optional[Tuple[float, float, float]] = None,
-        transparency: float = 0.0,
         visible: bool = True,
     ):
         self.shape_id = shape_id
@@ -32,7 +31,6 @@ class ShapeInfo:
         self.shape_type = shape_type
         self.name = name
         self.color = color
-        self.transparency = transparency
         self.visible = visible
 
 
@@ -55,6 +53,7 @@ class ViewService:
         self._context = context
         self._is_rendering = False
         self._shapes: Dict[str, ShapeInfo] = {}  # Shape registry
+        self._global_transparency: float = 0.0  # Track global transparency setting
 
     def setup_initial_view(self):
         """Setup initial view parameters."""
@@ -252,7 +251,6 @@ class ViewService:
         self,
         shape,
         color: Optional[Tuple[float, float, float]] = None,
-        transparency: float = 0.0,
         update: bool = True,
         display_mode: Optional[DisplayMode] = None,
         shape_type: str = "Shape",
@@ -265,7 +263,6 @@ class ViewService:
         Args:
             shape: OCP TopoDS_Shape object
             color: Tuple of RGB values (0-1) or None for default
-            transparency: Float 0-1 for transparency
             update: Whether to update the display
             display_mode: DisplayMode enum or None for default
             shape_type: Type of shape (Box, Sphere, etc.) for identification
@@ -289,9 +286,9 @@ class ViewService:
                 quantity_color = Quantity_Color(r, g, b, Quantity_TOC_RGB)
                 ais_shape.SetColor(quantity_color)
 
-            # Set transparency
-            if transparency > 0:
-                ais_shape.SetTransparency(transparency)
+            # Apply global transparency
+            if self._global_transparency > 0:
+                ais_shape.SetTransparency(self._global_transparency)
 
             # Display the shape
             self._context.Display(ais_shape, update)
@@ -310,7 +307,6 @@ class ViewService:
                 shape_type=shape_type,
                 name=name,
                 color=color,
-                transparency=transparency,
                 visible=True,
             )
             self._shapes[shape_id] = shape_info
@@ -401,23 +397,29 @@ class ViewService:
         except Exception as e:
             print(f"Error setting shape color: {e}")
 
-    def set_shape_transparency(
-        self, ais_shape: AIS_Shape, transparency: float, update: bool = True
-    ):
+    def set_global_transparency(self, transparency: float, update: bool = True):
         """
-        Set the transparency of a shape.
+        Set transparency for all shapes globally.
 
         Args:
-            ais_shape: AIS_Shape to set transparency
-            transparency: Float 0-1 for transparency
+            transparency: Float 0-1 for transparency (0 = opaque, 1 = fully transparent)
             update: Whether to update display
         """
         try:
-            ais_shape.SetTransparency(transparency)
+            # Store the global transparency setting
+            self._global_transparency = transparency
+            
+            # Apply to all existing shapes
+            for shape_info in self._shapes.values():
+                shape_info.ais_shape.SetTransparency(transparency)
+                if update:
+                    self._context.Redisplay(shape_info.ais_shape, False)
+            
             if update:
-                self._context.Redisplay(ais_shape, True)
+                # Single update after all changes
+                self._context.UpdateCurrentViewer()
         except Exception as e:
-            print(f"Error setting shape transparency: {e}")
+            print(f"Error setting global transparency: {e}")
 
     # Shape registry methods
 

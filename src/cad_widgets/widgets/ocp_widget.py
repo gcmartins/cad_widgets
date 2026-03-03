@@ -157,7 +157,6 @@ class OCPWidget(QWidget):
         self,
         shape,
         color=None,
-        transparency=0.0,
         update=True,
         display_mode: Optional[DisplayMode] = None,
         shape_type: str = "Shape",
@@ -170,7 +169,6 @@ class OCPWidget(QWidget):
         Args:
             shape: OCP TopoDS_Shape object
             color: Tuple of RGB values (0-1) or None for default
-            transparency: Float 0-1 for transparency
             update: Whether to update the display
             display_mode: DisplayMode enum or None for default
             shape_type: Type of shape (Box, Sphere, etc.) for identification
@@ -184,7 +182,7 @@ class OCPWidget(QWidget):
             return None
 
         return self._view_service.display_shape(
-            shape, color, transparency, update, display_mode, shape_type, name, shape_id
+            shape, color, update, display_mode, shape_type, name, shape_id
         )
 
     def erase_all(self):
@@ -237,6 +235,16 @@ class OCPWidget(QWidget):
         if self._view_service:
             self._view_service.set_display_mode(mode)
             self.update_display()
+
+    def set_global_transparency(self, transparency: float):
+        """
+        Set global transparency for all shapes.
+
+        Args:
+            transparency: Float 0-1 for transparency (0 = opaque, 1 = fully transparent)
+        """
+        if self._view_service:
+            self._view_service.set_global_transparency(transparency, update=True)
 
     def resizeEvent(self, event):
         """Handle widget resize."""
@@ -502,7 +510,7 @@ class OCPWidget(QWidget):
         self.display_shape(
             managed_shape.shape,
             color=managed_shape.color,
-            transparency=managed_shape.transparency,
+
             update=True,
             shape_type=managed_shape.shape_type.value,
             name=managed_shape.name,
@@ -524,7 +532,6 @@ class OCPWidget(QWidget):
         self.display_shape(
             managed_shape.shape,
             color=managed_shape.color,
-            transparency=managed_shape.transparency,
             update=True,
             shape_type=managed_shape.shape_type.value,
             name=managed_shape.name,

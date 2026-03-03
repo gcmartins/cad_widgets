@@ -170,11 +170,11 @@ def test_multiple_shapes(qapp):
 
 
 def test_display_shape_with_transparency(qapp):
-    """Test displaying a shape with transparency."""
+    """Test displaying a shape - transparency is now global only."""
     widget = OCPWidget()
     box = GeometryService().create_box(100, 100, 100)
 
-    ais_shape = widget.display_shape(box, transparency=0.5)
+    ais_shape = widget.display_shape(box)
     assert ais_shape is not None
 
 

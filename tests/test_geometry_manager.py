@@ -57,8 +57,7 @@ def test_create_box_shape(geometry_manager, app):
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
-        properties=properties,
-        transparency=0.0
+        properties=properties
     )
     
     app.processEvents()
@@ -78,7 +77,7 @@ def test_create_box_shape(geometry_manager, app):
     assert managed_shape.shape_type == ShapeType.BOX
     assert managed_shape.name == "Test Box"
     assert managed_shape.color == (1.0, 0.0, 0.0)
-    assert managed_shape.transparency == 0.0
+    # Transparency is now global only, not per-shape
     assert managed_shape.properties == properties
 
 
@@ -382,7 +381,7 @@ def test_shape_with_rotation(geometry_manager):
 
 
 def test_shape_with_transparency(geometry_manager):
-    """Test creating a shape with transparency."""
+    """Test creating a shape - transparency is now global only."""
     properties = SphereProperties(radius=25.0)
     
     shape = geometry_manager.create_shape(
@@ -390,13 +389,13 @@ def test_shape_with_transparency(geometry_manager):
         shape_type=ShapeType.SPHERE,
         name="Transparent Sphere",
         color=(0.0, 1.0, 0.0),
-        properties=properties,
-        transparency=0.5
+        properties=properties
     )
     
     assert shape is not None
     managed_shape = geometry_manager.get_shape("sphere_1")
-    assert managed_shape.transparency == 0.5
+    # Transparency is no longer a per-shape property
+    assert not hasattr(managed_shape, 'transparency')
 
 
 def test_create_properties_for_type_box():
@@ -558,8 +557,7 @@ def test_managed_shape_structure(geometry_manager):
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.5, 0.0),
-        properties=properties,
-        transparency=0.3
+        properties=properties
     )
     
     managed_shape = geometry_manager.get_shape("box_1")
@@ -570,13 +568,14 @@ def test_managed_shape_structure(geometry_manager):
     assert hasattr(managed_shape, 'name')
     assert hasattr(managed_shape, 'color')
     assert hasattr(managed_shape, 'properties')
-    assert hasattr(managed_shape, 'transparency')
+    # Transparency is now global only, not per-shape
+    assert not hasattr(managed_shape, 'transparency')
     
     # Verify values
     assert managed_shape.shape_type == ShapeType.BOX
     assert managed_shape.name == "Test Box"
     assert managed_shape.color == (1.0, 0.5, 0.0)
-    assert managed_shape.transparency == 0.3
+    # Transparency is no longer a per-shape property
     assert isinstance(managed_shape.properties, BoxProperties)
 
 

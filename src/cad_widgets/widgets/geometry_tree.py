@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 from PySide6.QtCore import Qt, Signal, QPoint
-from PySide6.QtGui import QColor, QBrush, QIcon, QPixmap, QAction
+from PySide6.QtGui import QAction
 
 from ..enums import ShapeType
 
@@ -28,9 +28,8 @@ class GeometryTreeWidget(QWidget):
     Features:
     - Hierarchical display of shapes
     - Show/hide shapes via checkboxes
-    - Color indicators for each shape
     - Selection synchronization with viewer
-    - Shape information (type, properties)
+    - Shape information (name, type)
     
     Signals:
         shape_visibility_changed(str, bool): Emitted when shape visibility changes (shape_id, visible)
@@ -76,8 +75,8 @@ class GeometryTreeWidget(QWidget):
         
         # Tree widget
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabels(["Shape", "Type", "Properties"])
-        self.tree.setColumnCount(3)
+        self.tree.setHeaderLabels(["Shape", "Type"])
+        self.tree.setColumnCount(2)
         
         # Configure tree
         self.tree.setAlternatingRowColors(True)
@@ -91,7 +90,6 @@ class GeometryTreeWidget(QWidget):
         header = self.tree.header()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         
         # Connect tree signals
         self.tree.itemChanged.connect(self._on_item_changed)
@@ -125,8 +123,8 @@ class GeometryTreeWidget(QWidget):
         Args:
             shape_id: Unique identifier for the shape
             shape_type: Type of shape (Box, Sphere, Cylinder, etc.)
-            color: RGB color tuple (0-1 range)
-            properties: Dictionary of shape properties
+            color: RGB color tuple (0-1 range) - deprecated, no longer displayed
+            properties: Dictionary of shape properties - deprecated, no longer displayed
             name: Display name (auto-generated if None)
             
         Returns:
@@ -138,7 +136,7 @@ class GeometryTreeWidget(QWidget):
             name = f"{shape_type} {self._shape_counter}"
         
         # Create tree item
-        item = QTreeWidgetItem([name, shape_type, ""])
+        item = QTreeWidgetItem([name, shape_type])
         
         # Set checkable
         item.setFlags(
@@ -148,20 +146,6 @@ class GeometryTreeWidget(QWidget):
         
         # Store shape_id in item data
         item.setData(0, Qt.ItemDataRole.UserRole, shape_id)
-        
-        # Set color indicator
-        if color:
-            color_icon = self._create_color_icon(color)
-            item.setIcon(0, color_icon)
-        
-        # Add properties as child items if provided
-        if properties:
-            for key, value in properties.items():
-                prop_item = QTreeWidgetItem([f"{key}: {value}", "", ""])
-                prop_item.setFlags(
-                    prop_item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable
-                )
-                item.addChild(prop_item)
         
         # Add to tree
         self.tree.addTopLevelItem(item)
@@ -254,38 +238,8 @@ class GeometryTreeWidget(QWidget):
             shape_id: ID of the shape
             properties: Dictionary of updated properties
         """
-        if shape_id in self._shapes:
-            item = self._shapes[shape_id]
-            # Remove existing property children
-            item.takeChildren()
-            # Add updated properties
-            for key, value in properties.items():
-                prop_item = QTreeWidgetItem([f"{key}: {value}", "", ""])
-                prop_item.setFlags(
-                    prop_item.flags() & ~Qt.ItemFlag.ItemIsUserCheckable
-                )
-                item.addChild(prop_item)
-                
-    def _create_color_icon(self, color: tuple) -> QIcon:
-        """
-        Create a color icon for the shape.
-        
-        Args:
-            color: RGB color tuple (0-1 range)
-            
-        Returns:
-            QIcon with the specified color
-        """
-        # Convert color from 0-1 to 0-255
-        r = int(color[0] * 255)
-        g = int(color[1] * 255)
-        b = int(color[2] * 255)
-        
-        # Create pixmap
-        pixmap = QPixmap(16, 16)
-        pixmap.fill(QColor(r, g, b))
-        
-        return QIcon(pixmap)
+        # Properties are no longer displayed in the tree
+        pass
         
     def _update_count(self):
         """Update the shape count label."""
@@ -416,18 +370,11 @@ class GeometryTreeWidget(QWidget):
             shape_id: ID of the created shape
             managed_shape: ManagedShape object
         """
-        # Prepare properties for display
-        properties = managed_shape.properties.get_formatted_properties()
-        if managed_shape.transparency > 0:
-            properties["Transparency"] = f"{int(managed_shape.transparency * 100)}%"
-        
         # Add to tree
         self.add_shape(
             shape_id,
             shape_type=managed_shape.shape_type.value,
-            color=managed_shape.color,
-            name=managed_shape.name,
-            properties=properties
+            name=managed_shape.name
         )
     
     def on_shape_updated(self, shape_id: str, managed_shape):
@@ -438,11 +385,8 @@ class GeometryTreeWidget(QWidget):
             shape_id: ID of the updated shape
             managed_shape: ManagedShape object with updated data
         """
-        # Update properties in tree
-        self.update_shape_properties(
-            shape_id,
-            managed_shape.properties.get_formatted_properties()
-        )
+        # Properties are no longer displayed in the tree
+        pass
     
     def on_shape_removed(self, shape_id: str):
         """

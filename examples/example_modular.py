@@ -140,6 +140,10 @@ class CADViewerWindow(QMainWindow):
             lambda mode_str: self.viewer.set_display_mode(DisplayMode(mode_str))
         )
 
+        self.view_toolbar.transparency_changed.connect(
+            self.viewer.set_global_transparency
+        )
+
         self.view_toolbar.fit_all_requested.connect(self.viewer.fit_all)
 
         # Connect selection toolbar signals
@@ -378,20 +382,6 @@ class CADViewerWindow(QMainWindow):
                 translation=Translation(x=-80, y=0, z=30),
                 rotation=Rotation(x=0, y=90, z=0)
             )
-        )
-
-        # 6. Transparent box
-        self.geometry_manager.create_shape(
-            shape_id="box_2",
-            shape_type=ShapeType.BOX,
-            name="Cyan Box (Transparent)",
-            color=(0.2, 0.7, 0.7),
-            properties=BoxProperties(
-                width=40, height=40, depth=80,
-                translation=Translation(x=-80, y=-80, z=0),
-                rotation=Rotation(x=0, y=0, z=0)
-            ),
-            transparency=0.6
         )
 
         # Fit all shapes in view

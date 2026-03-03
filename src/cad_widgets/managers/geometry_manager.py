@@ -31,7 +31,6 @@ class ManagedShape:
     name: str
     color: Tuple[float, float, float]
     properties: ShapeProperties
-    transparency: float = 0.0
 
 
 class GeometryManager(QObject):
@@ -69,8 +68,7 @@ class GeometryManager(QObject):
         shape_type: ShapeType,
         name: str,
         color: Tuple[float, float, float],
-        properties: ShapeProperties,
-        transparency: float = 0.0
+        properties: ShapeProperties
     ) -> Any:
         """
         Create a shape from properties.
@@ -81,7 +79,6 @@ class GeometryManager(QObject):
             name: Display name
             color: RGB color tuple
             properties: Shape properties
-            transparency: Transparency value (0-1)
             
         Returns:
             Created TopoDS_Shape
@@ -94,8 +91,7 @@ class GeometryManager(QObject):
                 shape_type=shape_type,
                 name=name,
                 color=color,
-                properties=properties,
-                transparency=transparency
+                properties=properties
             )
             self._shapes[shape_id] = managed_shape
             
@@ -252,8 +248,7 @@ class GeometryManager(QObject):
             shape_type=ShapeType.UNION,
             name=result_name,
             color=result_color,
-            properties=properties,
-            transparency=0.0
+            properties=properties
         )
         
         # Remove original shapes
@@ -313,8 +308,7 @@ class GeometryManager(QObject):
             shape_type=ShapeType.SUBTRACTION,
             name=result_name,
             color=result_color,
-            properties=properties,
-            transparency=0.0
+            properties=properties
         )
         
         # Remove original shapes

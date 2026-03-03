@@ -325,7 +325,7 @@ def test_shape_with_rotation_integration(integrated_system, app):
 
 
 def test_shape_with_transparency_integration(integrated_system, app):
-    """Test that shapes with transparency are correctly handled."""
+    """Test that shapes are correctly handled - transparency is now global only."""
     manager = integrated_system['manager']
     integrated_system['viewer']
     tree = integrated_system['tree']
@@ -337,8 +337,7 @@ def test_shape_with_transparency_integration(integrated_system, app):
         shape_type=ShapeType.SPHERE,
         name="Transparent Sphere",
         color=(0.0, 1.0, 0.0),
-        properties=properties,
-        transparency=0.5
+        properties=properties
     )
     
     app.processEvents()
