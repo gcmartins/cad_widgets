@@ -7,12 +7,15 @@ A Python library for building 3D CAD viewers with PySide6 and OpenCascade (OCP).
 
 ## Features
 
-- 🎨 **Modular Architecture** - Reusable components with clean separation of concerns
+- 🎨 **Modular Architecture** - Layered design with widgets, services, managers, and models
 - 🖱️ **Smooth Interaction** - Flicker-free rotation, panning, and zooming
 - 🎯 **Multiple View Modes** - Perspective/orthographic projections, standard views
 - 🎨 **Display Modes** - Shaded, wireframe, or combination rendering
-- 🔧 **Utility Functions** - Helper functions for common shape operations
-- 🧪 **Well Tested** - Comprehensive test suite
+- 🌳 **Geometry Management** - Tree view with visibility controls and property editing
+- ✂️ **Boolean Operations** - Union, subtraction, and intersection operations
+- 🎯 **Advanced Selection** - Volume, surface, edge, and vertex selection modes
+- 🔧 **Shape Creation** - Clean API for boxes, spheres, cylinders, cones, and tori
+- 🧪 **Well Tested** - Comprehensive test suite with >90% coverage
 - 📚 **Documented** - Extensive documentation and examples
 - 🖥️ **Cross-Platform** - Works on Linux (X11), Windows, and macOS
 
@@ -56,10 +59,7 @@ app.exec()
 ### Running Examples
 
 ```bash
-# Simple box example
-python examples/simple_example.py
-
-# Full modular example with toolbar
+# Full-featured modular example with all widgets
 python examples/example_modular.py
 ```
 
@@ -68,91 +68,41 @@ python examples/example_modular.py
 ```
 cad_widgets/
 ├── src/
-│   └── cad_widgets/              # Main package
-│       ├── widgets/              # Widget components
-│       │   ├── ocp_widget.py     # Core 3D viewer
-│       │   └── view_toolbar.py   # View controls toolbar
-│       └── utils/                # Utilities
-│           └── shapes.py         # Shape creation helpers
-├── examples/                     # Example applications
-├── tests/                        # Test suite
-├── docs/                         # Documentation
-└── pyproject.toml               # Project configuration
+│   └── cad_widgets/                     # Main package
+│       ├── __init__.py                  # Package exports
+│       ├── enums.py                     # Enums for display and selection
+│       ├── widgets/                     # UI Widget components
+│       │   ├── ocp_widget.py            # Core 3D viewer
+│       │   ├── view_toolbar.py          # View controls toolbar
+│       │   ├── selection_toolbar.py     # Selection mode toolbar
+│       │   ├── geometry_tree.py         # Geometry tree view
+│       │   └── property_editor.py       # Property editor panel
+│       ├── services/                    # Service layer
+│       │   ├── geometry_service.py      # Shape creation/manipulation
+│       │   ├── view_service.py          # View and display management
+│       │   └── selection_service.py     # Selection handling
+│       ├── managers/                    # Business logic layer
+│       │   └── geometry_manager.py      # Geometry lifecycle management
+│       └── models/                      # Data models
+│           └── shape_properties.py      # Property classes
+├── examples/                            # Example applications
+│   └── example_modular.py               # Full-featured example
+├── tests/                               # Comprehensive test suite
+├── docs/                                # Documentation
+│   └── ARCHITECTURE.md                  # Architecture guide
+└── pyproject.toml                       # Project configuration
 ```
 
 ## Architecture
 
-### Core Components
+CAD Widgets follows a clean, layered architecture with clear separation of concerns:
 
-#### OCPWidget
+- **Widget Layer** - UI components (OCPWidget, toolbars, tree view, property editor)
+- **Manager Layer** - High-level orchestration (GeometryManager)
+- **Service Layer** - Business logic (GeometryService, ViewService, SelectionService)
+- **Models Layer** - Data structures (ShapeProperties, Translation, Rotation)
 
-The main 3D viewer widget integrating OpenCascade with PySide6.
-
-```python
-from cad_widgets import OCPWidget
-
-viewer = OCPWidget()
-viewer.display_shape(shape, color=(1, 0, 0), transparency=0.5)
-viewer.set_projection('front')
-viewer.set_projection_type('orthographic')
-viewer.set_display_mode('wireframe')
-viewer.fit_all()
-```
-
-**Key Features**:
-- Platform-specific window integration
-- Immediate rendering for smooth interaction
-- Multiple projection types and display modes
-- Standard view presets (front, top, iso, etc.)
-
-#### ViewToolbar
-
-Reusable toolbar component with signal-based communication.
-
-```python
-from cad_widgets import OCPWidget, ViewToolbar
-
-viewer = OCPWidget()
-toolbar = ViewToolbar(orientation='vertical')
-
-# Connect signals
-toolbar.projection_changed.connect(viewer.set_projection)
-toolbar.projection_type_changed.connect(viewer.set_projection_type)
-toolbar.display_mode_changed.connect(viewer.set_display_mode)
-toolbar.fit_all_requested.connect(viewer.fit_all)
-toolbar.clear_requested.connect(viewer.erase_all)
-```
-
-**Features**:
-- Standard view controls
-- Projection type selection
-- Display mode selection
-- Fit all and clear actions
-- Qt signals for loose coupling
-
-#### Shape Utilities
-
-Helper service for creating and manipulating shapes.
-
-```python
-from cad_widgets import GeometryService
-
-geo = GeometryService()
-
-# Create shapes with simple parameters
-box = geo.create_box(100, 50, 75)
-sphere = geo.create_sphere(30)
-
-# Create shapes with custom position using tuples
-sphere_moved = geo.create_sphere(30, center=(100, 0, 0))
-box_positioned = geo.create_box(50, 50, 50, position=(50, 0, 0))
-
-# Create shapes with custom direction using tuples
-cylinder = geo.create_cylinder(20, 60, position=(0, 0, 0), direction=(0, 0, 1))
-
-# Transform shapes
-translated = geo.translate_shape(box, 100, 0, 0)
-```
+Components communicate through Qt signals for loose coupling and reusability. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architectural documentation including patterns, component details, and extension points.
 
 ## Mouse Controls
 
@@ -162,26 +112,7 @@ translated = geo.translate_shape(box, 100, 0, 0)
 
 ## API Reference
 
-### OCPWidget Methods
-
-- `display_shape(shape, color=None, transparency=0.0, update=True)` - Display a shape
-- `erase_all()` - Clear all shapes
-- `fit_all()` - Fit all objects in view
-- `update_display()` - Refresh the display
-- `set_projection(direction)` - Set view ('top', 'front', 'iso', etc.)
-- `set_projection_type(type)` - Set 'perspective' or 'orthographic'
-- `set_display_mode(mode)` - Set 'shaded', 'wireframe', or 'both'
-- `get_context()` - Get AIS_InteractiveContext
-- `get_view()` - Get V3d_View
-- `get_viewer()` - Get V3d_Viewer
-
-### ViewToolbar Signals
-
-- `projection_changed(str)` - Standard view changed
-- `projection_type_changed(str)` - Projection type changed
-- `display_mode_changed(str)` - Display mode changed
-- `fit_all_requested()` - Fit all requested
-- `clear_requested()` - Clear requested
+For a complete API reference including all widget methods, signals, service methods, and enums, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#api-reference).
 
 ## Dependencies
 
@@ -191,67 +122,27 @@ translated = geo.translate_shape(box, 100, 0, 0)
 
 ## Development
 
-### Running Tests
+### Quick Start
 
 ```bash
-# Run all tests
+# Run tests
 pytest tests/
 
 # Run with coverage
 pytest tests/ --cov=cad_widgets
 
-# Run specific test
-pytest tests/test_widget.py -v
-```
-
-### Type Checking
-
-Type checking with mypy is configured and enabled:
-
-```bash
-# Run type checker
+# Type check
 mypy src/cad_widgets
 
-# Or using invoke
-uv run invoke typecheck
-```
-
-The project uses PEP 561 typing and includes a `py.typed` marker. Configuration is in `pyproject.toml`.
-
-### Code Formatting and Linting
-
-```bash
-# Check code with ruff
+# Lint and format
 ruff check src tests examples
-
-# Auto-fix issues
-ruff check --fix src tests examples
-
-# Format code
 ruff format src tests examples
 
-# Or using invoke
-uv run invoke lint
-uv run invoke format
-```
-
-### Development Tasks
-
-The project includes invoke tasks for common operations:
-
-```bash
-# Run all checks (lint, typecheck, test)
+# Run all checks
 uv run invoke check
-
-# Individual tasks
-uv run invoke test           # Run tests
-uv run invoke test --verbose # Run tests with verbose output
-uv run invoke test-cov       # Run tests with coverage
-uv run invoke typecheck      # Run mypy
-uv run invoke lint           # Run ruff linting
-uv run invoke format         # Format code
-uv run invoke clean          # Clean generated files
 ```
+
+For detailed development guidelines, testing strategies, and contributing instructions, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#testing).
 
 ## Documentation
 
