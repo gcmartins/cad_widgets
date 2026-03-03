@@ -149,14 +149,6 @@ class CADViewerWindow(QMainWindow):
             lambda mode_str: self.viewer.set_selection_mode(SelectionMode(mode_str))
         )
 
-        self.selection_toolbar.selection_enabled_changed.connect(
-            self.viewer.set_selection_enabled
-        )
-
-        self.selection_toolbar.clear_selection_requested.connect(
-            self.viewer.clear_selection
-        )
-
         # Connect geometry tree signals
         self.geometry_tree.shape_visibility_changed.connect(
             self._on_shape_visibility_changed

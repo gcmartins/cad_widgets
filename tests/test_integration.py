@@ -30,11 +30,8 @@ def test_toolbar_widget_integration_basic(qapp):
     toolbar.selection_mode_changed.connect(
         lambda mode_str: widget.set_selection_mode(SelectionMode(mode_str))
     )
-    toolbar.selection_enabled_changed.connect(widget.set_selection_enabled)
-    toolbar.clear_selection_requested.connect(widget.clear_selection)
 
     # Verify initial states match
-    assert toolbar.is_selection_enabled() == widget.is_selection_enabled()
     assert toolbar.get_current_mode() == widget.get_selection_mode()
 
 

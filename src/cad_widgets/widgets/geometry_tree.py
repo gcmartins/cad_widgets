@@ -96,24 +96,10 @@ class GeometryTreeWidget(QWidget):
         
         layout.addWidget(self.tree)
         
-        # Bottom panel with shape count
-        button_layout = QHBoxLayout()
-        
-        # Shape count label
-        self.count_label = QLabel("Shapes: 0")
-        self.count_label.setStyleSheet("color: #666; padding: 5px;")
-        button_layout.addWidget(self.count_label)
-        
-        button_layout.addStretch()
-        
-        layout.addLayout(button_layout)
-        
     def add_shape(
         self,
         shape_id: str,
         shape_type: str = "Shape",
-        color: Optional[tuple] = None,
-        properties: Optional[Dict] = None,
         name: Optional[str] = None,
     ) -> str:
         """
@@ -152,9 +138,6 @@ class GeometryTreeWidget(QWidget):
         # Store reference
         self._shapes[shape_id] = item
         
-        # Update count
-        self._update_count()
-        
         return shape_id
         
     def remove_shape(self, shape_id: str):
@@ -170,14 +153,12 @@ class GeometryTreeWidget(QWidget):
             if index >= 0:
                 self.tree.takeTopLevelItem(index)
             del self._shapes[shape_id]
-            self._update_count()
             
     def clear_all(self):
         """Clear all shapes from the tree."""
         self.tree.clear()
         self._shapes.clear()
         self._shape_counter = 0
-        self._update_count()
         
     def get_shape_ids(self) -> List[str]:
         """
@@ -239,11 +220,6 @@ class GeometryTreeWidget(QWidget):
         """
         # Properties are no longer displayed in the tree
         pass
-        
-    def _update_count(self):
-        """Update the shape count label."""
-        count = len(self._shapes)
-        self.count_label.setText(f"Shapes: {count}")
         
     def _on_item_changed(self, item: QTreeWidgetItem, column: int):
         """

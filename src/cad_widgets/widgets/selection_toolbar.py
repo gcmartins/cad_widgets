@@ -9,11 +9,8 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
-    QPushButton,
     QComboBox,
     QGroupBox,
-    QFrame,
-    QCheckBox,
 )
 from PySide6.QtCore import Signal
 
@@ -26,14 +23,10 @@ class SelectionToolbar(QWidget):
 
     Signals:
         selection_mode_changed(str): Emitted when selection mode changes (volume, surface, edge, vertex)
-        selection_enabled_changed(bool): Emitted when selection is enabled/disabled
-        clear_selection_requested(): Emitted when clear selection button is clicked
     """
 
     # Define signals
     selection_mode_changed = Signal(str)
-    selection_enabled_changed = Signal(bool)
-    clear_selection_requested = Signal()
 
     def __init__(self, parent=None, orientation="horizontal"):
         """
@@ -45,7 +38,6 @@ class SelectionToolbar(QWidget):
         """
         super().__init__(parent)
         self._orientation = orientation
-        self._selection_enabled = True
         self._setup_ui()
 
     def _setup_ui(self):
@@ -59,37 +51,9 @@ class SelectionToolbar(QWidget):
 
         main_layout.setContentsMargins(5, 5, 5, 5)
 
-        # Selection enable/disable checkbox
-        self._enable_checkbox = QCheckBox("Enable Selection")
-        self._enable_checkbox.setChecked(True)
-        self._enable_checkbox.toggled.connect(self._on_selection_enabled_toggled)
-        main_layout.addWidget(self._enable_checkbox)
-
-        # Separator
-        separator = QFrame()
-        if self._orientation == "vertical":
-            separator.setFrameShape(QFrame.Shape.HLine)
-        else:
-            separator.setFrameShape(QFrame.Shape.VLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        main_layout.addWidget(separator)
-
         # Selection mode group
         selection_mode_group = self._create_selection_mode_group()
         main_layout.addWidget(selection_mode_group)
-
-        # Separator
-        separator2 = QFrame()
-        if self._orientation == "vertical":
-            separator2.setFrameShape(QFrame.Shape.HLine)
-        else:
-            separator2.setFrameShape(QFrame.Shape.VLine)
-        separator2.setFrameShadow(QFrame.Shadow.Sunken)
-        main_layout.addWidget(separator2)
-
-        # Actions group
-        actions_group = self._create_actions_group()
-        main_layout.addWidget(actions_group)
 
         # Add stretch at the end
         main_layout.addStretch()
@@ -118,49 +82,18 @@ class SelectionToolbar(QWidget):
 
         return group
 
-    def _create_actions_group(self):
-        """Create action buttons group."""
-        group = QGroupBox("Actions")
-        layout = QVBoxLayout(group)
-        layout.setSpacing(5)
-
-        # Clear selection button
-        clear_btn = QPushButton("Clear Selection")
-        clear_btn.setToolTip("Clear all selected entities")
-        clear_btn.clicked.connect(self._on_clear_selection)
-        layout.addWidget(clear_btn)
-
-        return group
-
     def _on_mode_combo_changed(self, index: int):
         """Handle selection mode combo box change."""
-        if self._selection_enabled:
-            mode_value = self._mode_combo.itemData(index)
-            self.selection_mode_changed.emit(mode_value)
-
-    def _on_selection_enabled_toggled(self, checked: bool):
-        """Handle selection enable/disable toggle."""
-        self._selection_enabled = checked
-
-        # Enable/disable mode combo box
-        self._mode_combo.setEnabled(checked)
-
-        self.selection_enabled_changed.emit(checked)
-
-    def _on_clear_selection(self):
-        """Handle clear selection button click."""
-        self.clear_selection_requested.emit()
+        mode_value = self._mode_combo.itemData(index)
+        self.selection_mode_changed.emit(mode_value)
 
     def get_current_mode(self) -> Optional[SelectionMode]:
         """
         Get the currently selected mode.
 
         Returns:
-            Current SelectionMode or None if selection is disabled
+            Current SelectionMode
         """
-        if not self._selection_enabled:
-            return None
-
         mode_value = self._mode_combo.currentData()
 
         # Map string value back to enum
@@ -181,21 +114,3 @@ class SelectionToolbar(QWidget):
             if self._mode_combo.itemData(i) == mode.value:
                 self._mode_combo.setCurrentIndex(i)
                 break
-
-    def is_selection_enabled(self) -> bool:
-        """
-        Check if selection is currently enabled.
-
-        Returns:
-            True if selection is enabled, False otherwise
-        """
-        return self._selection_enabled
-
-    def set_selection_enabled(self, enabled: bool):
-        """
-        Enable or disable selection.
-
-        Args:
-            enabled: True to enable, False to disable
-        """
-        self._enable_checkbox.setChecked(enabled)
