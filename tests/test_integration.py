@@ -66,8 +66,8 @@ def test_full_integration_workflow(qapp):
     # Display shapes
     box = GeometryService().create_box(100, 100, 100)
     sphere = GeometryService().create_sphere(50)
-    widget.display_shape(box)
-    widget.display_shape(sphere)
+    widget.display_shape(box, shape_id="box_1")
+    widget.display_shape(sphere, shape_id="sphere_1")
 
     # Perform various operations via toolbar
     toolbar.set_mode(SelectionMode.SURFACE)
@@ -92,8 +92,8 @@ def test_multiple_mode_changes_with_shapes(qapp):
     # Display multiple shapes
     box = GeometryService().create_box(100, 100, 100)
     sphere = GeometryService().create_sphere(50)
-    widget.display_shape(box)
-    widget.display_shape(sphere)
+    widget.display_shape(box, shape_id="box_1")
+    widget.display_shape(sphere, shape_id="sphere_1")
 
     # Cycle through all modes multiple times
     modes = [
@@ -139,7 +139,7 @@ def test_simultaneous_toolbar_widget_updates(qapp):
 
     # Display shapes
     box = GeometryService().create_box(100, 100, 100)
-    widget.display_shape(box)
+    widget.display_shape(box, shape_id="box_1")
 
     # Rapid sequence of mode changes
     toolbar.set_mode(SelectionMode.SURFACE)
@@ -234,8 +234,8 @@ def test_multiple_widgets_single_toolbar(qapp):
     # Display shapes in both widgets
     box1 = GeometryService().create_box(100, 100, 100)
     box2 = GeometryService().create_box(50, 50, 50)
-    widget1.display_shape(box1)
-    widget2.display_shape(box2)
+    widget1.display_shape(box1, shape_id="box_1")
+    widget2.display_shape(box2, shape_id="box_2")
 
     # Change mode via toolbar
     toolbar.set_mode(SelectionMode.EDGE)
@@ -260,9 +260,9 @@ def test_toolbar_widget_with_all_shape_types(qapp):
     sphere = GeometryService().create_sphere(50)
     cylinder = GeometryService().create_cylinder(30, 80)
 
-    widget.display_shape(box, color=(0.8, 0.2, 0.2))
-    widget.display_shape(sphere, color=(0.2, 0.8, 0.2))
-    widget.display_shape(cylinder, color=(0.2, 0.2, 0.8))
+    widget.display_shape(box, shape_id="box_1", color=(0.8, 0.2, 0.2))
+    widget.display_shape(sphere, shape_id="sphere_1", color=(0.2, 0.8, 0.2))
+    widget.display_shape(cylinder, shape_id="cylinder_1", color=(0.2, 0.2, 0.8))
 
     # Test all selection modes work with various shapes
     modes = [
@@ -288,7 +288,7 @@ def test_clear_and_reload_shapes(qapp):
 
     # Display shapes
     box = GeometryService().create_box(100, 100, 100)
-    widget.display_shape(box)
+    widget.display_shape(box, shape_id="box_1")
 
     # Set selection mode
     toolbar.set_mode(SelectionMode.SURFACE)
@@ -301,7 +301,7 @@ def test_clear_and_reload_shapes(qapp):
 
     # Add new shapes
     sphere = GeometryService().create_sphere(50)
-    widget.display_shape(sphere)
+    widget.display_shape(sphere, shape_id="sphere_1")
 
     # Selection mode still active
     assert widget.get_selection_mode() == SelectionMode.SURFACE

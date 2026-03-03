@@ -77,22 +77,22 @@ def test_create_shape_updates_viewer_and_tree(integrated_system, qapp):
     )
     
     # Create shape
-    shape = manager.create_shape(
-        shape_id="box_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
         properties=properties
     )
+    shape_id = managed_shape.shape_id
     
     qapp.processEvents()
     
     # Verify shape was created
-    assert shape is not None
+    assert managed_shape is not None
     
     # Verify tree has the shape
     shape_ids = tree.get_shape_ids()
-    assert "box_1" in shape_ids
+    assert shape_id in shape_ids
     
     # Verify tree has correct shape data
     tree_item = tree.tree.findItems("Test Box", Qt.MatchFlag.MatchRecursive, 0)[0]
@@ -107,13 +107,13 @@ def test_update_shape_updates_viewer_and_tree(integrated_system, qapp):
     
     # Create initial shape
     initial_props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    manager.create_shape(
-        shape_id="box_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
         properties=initial_props
     )
+    shape_id = managed_shape.shape_id
     
     qapp.processEvents()
     
@@ -124,12 +124,12 @@ def test_update_shape_updates_viewer_and_tree(integrated_system, qapp):
         depth=60.0,
         translation=Translation(x=20.0, y=30.0, z=40.0)
     )
-    manager.update_shape("box_1", new_props)
+    manager.update_shape(shape_id, new_props)
     
     qapp.processEvents()
     
     # Verify tree reflects update (check for position in properties)
-    assert "box_1" in tree.get_shape_ids()
+    assert shape_id in tree.get_shape_ids()
 
 
 def test_remove_shape_removes_from_viewer_and_tree(integrated_system, qapp):
@@ -140,26 +140,26 @@ def test_remove_shape_removes_from_viewer_and_tree(integrated_system, qapp):
     
     # Create shape
     properties = SphereProperties(radius=25.0)
-    manager.create_shape(
-        shape_id="sphere_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Test Sphere",
         color=(0.0, 1.0, 0.0),
         properties=properties
     )
+    shape_id = managed_shape.shape_id
     
     qapp.processEvents()
     
     # Verify shape exists in tree
-    assert "sphere_1" in tree.get_shape_ids()
+    assert shape_id in tree.get_shape_ids()
     
     # Remove shape
-    manager.remove_shape("sphere_1")
+    manager.remove_shape(shape_id)
     
     qapp.processEvents()
     
     # Verify shape removed from tree
-    assert "sphere_1" not in tree.get_shape_ids()
+    assert shape_id not in tree.get_shape_ids()
 
 
 def test_clear_all_clears_viewer_and_tree(integrated_system, qapp):
@@ -171,7 +171,6 @@ def test_clear_all_clears_viewer_and_tree(integrated_system, qapp):
     # Create multiple shapes
     properties1 = BoxProperties(width=50.0, height=50.0, depth=50.0)
     manager.create_shape(
-        shape_id="box_1",
         shape_type=ShapeType.BOX,
         name="Box 1",
         color=(1.0, 0.0, 0.0),
@@ -180,7 +179,6 @@ def test_clear_all_clears_viewer_and_tree(integrated_system, qapp):
     
     properties2 = SphereProperties(radius=25.0)
     manager.create_shape(
-        shape_id="sphere_1",
         shape_type=ShapeType.SPHERE,
         name="Sphere 1",
         color=(0.0, 1.0, 0.0),
@@ -189,7 +187,6 @@ def test_clear_all_clears_viewer_and_tree(integrated_system, qapp):
     
     properties3 = CylinderProperties(radius=15.0, height=50.0)
     manager.create_shape(
-        shape_id="cylinder_1",
         shape_type=ShapeType.CYLINDER,
         name="Cylinder 1",
         color=(0.0, 0.0, 1.0),
@@ -218,8 +215,7 @@ def test_multiple_shapes_integration(integrated_system, qapp):
     
     # Create box
     box_props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    manager.create_shape(
-        shape_id="box_1",
+    box_shape = manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box",
         color=(1.0, 0.0, 0.0),
@@ -228,8 +224,7 @@ def test_multiple_shapes_integration(integrated_system, qapp):
     
     # Create sphere
     sphere_props = SphereProperties(radius=25.0)
-    manager.create_shape(
-        shape_id="sphere_1",
+    sphere_shape = manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Sphere",
         color=(0.0, 1.0, 0.0),
@@ -238,8 +233,7 @@ def test_multiple_shapes_integration(integrated_system, qapp):
     
     # Create cylinder
     cylinder_props = CylinderProperties(radius=15.0, height=50.0)
-    manager.create_shape(
-        shape_id="cylinder_1",
+    cylinder_shape = manager.create_shape(
         shape_type=ShapeType.CYLINDER,
         name="Cylinder",
         color=(0.0, 0.0, 1.0),
@@ -251,9 +245,9 @@ def test_multiple_shapes_integration(integrated_system, qapp):
     # Verify all shapes in tree
     shape_ids = tree.get_shape_ids()
     assert len(shape_ids) == 3
-    assert "box_1" in shape_ids
-    assert "sphere_1" in shape_ids
-    assert "cylinder_1" in shape_ids
+    assert box_shape.shape_id in shape_ids
+    assert sphere_shape.shape_id in shape_ids
+    assert cylinder_shape.shape_id in shape_ids
 
 
 def test_shape_with_translation_integration(integrated_system, qapp):
@@ -269,8 +263,7 @@ def test_shape_with_translation_integration(integrated_system, qapp):
         translation=Translation(x=100.0, y=50.0, z=25.0)
     )
     
-    manager.create_shape(
-        shape_id="box_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Translated Box",
         color=(1.0, 0.0, 0.0),
@@ -280,7 +273,7 @@ def test_shape_with_translation_integration(integrated_system, qapp):
     qapp.processEvents()
     
     # Verify shape in tree
-    assert "box_1" in tree.get_shape_ids()
+    assert managed_shape.shape_id in tree.get_shape_ids()
     
     # Verify tree shows position property
     tree_item = tree.tree.findItems("Translated Box", Qt.MatchFlag.MatchRecursive, 0)[0]
@@ -299,8 +292,7 @@ def test_shape_with_rotation_integration(integrated_system, qapp):
         rotation=Rotation(x=45.0, y=30.0, z=15.0)
     )
     
-    manager.create_shape(
-        shape_id="cylinder_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.CYLINDER,
         name="Rotated Cylinder",
         color=(0.0, 0.0, 1.0),
@@ -310,7 +302,7 @@ def test_shape_with_rotation_integration(integrated_system, qapp):
     qapp.processEvents()
     
     # Verify shape in tree
-    assert "cylinder_1" in tree.get_shape_ids()
+    assert managed_shape.shape_id in tree.get_shape_ids()
 
 
 def test_shape_with_transparency_integration(integrated_system, qapp):
@@ -321,8 +313,7 @@ def test_shape_with_transparency_integration(integrated_system, qapp):
     
     properties = SphereProperties(radius=25.0)
     
-    manager.create_shape(
-        shape_id="sphere_1",
+    managed_shape = manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Transparent Sphere",
         color=(0.0, 1.0, 0.0),
@@ -332,7 +323,7 @@ def test_shape_with_transparency_integration(integrated_system, qapp):
     qapp.processEvents()
     
     # Verify shape in tree
-    assert "sphere_1" in tree.get_shape_ids()
+    assert managed_shape.shape_id in tree.get_shape_ids()
 
 
 def test_sequential_operations_integration(integrated_system, qapp):
@@ -343,8 +334,7 @@ def test_sequential_operations_integration(integrated_system, qapp):
     
     # Create shape
     props1 = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    manager.create_shape(
-        shape_id="box_1",
+    box_shape = manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box 1",
         color=(1.0, 0.0, 0.0),
@@ -352,19 +342,18 @@ def test_sequential_operations_integration(integrated_system, qapp):
     )
     
     qapp.processEvents()
-    assert "box_1" in tree.get_shape_ids()
+    assert box_shape.shape_id in tree.get_shape_ids()
     
     # Update shape
     props2 = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    manager.update_shape("box_1", props2)
+    manager.update_shape(box_shape.shape_id, props2)
     
     qapp.processEvents()
-    assert "box_1" in tree.get_shape_ids()
+    assert box_shape.shape_id in tree.get_shape_ids()
     
     # Add another shape
     props3 = SphereProperties(radius=25.0)
-    manager.create_shape(
-        shape_id="sphere_1",
+    sphere_shape = manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Sphere 1",
         color=(0.0, 1.0, 0.0),
@@ -375,11 +364,11 @@ def test_sequential_operations_integration(integrated_system, qapp):
     assert len(tree.get_shape_ids()) == 2
     
     # Remove first shape
-    manager.remove_shape("box_1")
+    manager.remove_shape(box_shape.shape_id)
     
     qapp.processEvents()
-    assert "box_1" not in tree.get_shape_ids()
-    assert "sphere_1" in tree.get_shape_ids()
+    assert box_shape.shape_id not in tree.get_shape_ids()
+    assert sphere_shape.shape_id in tree.get_shape_ids()
     
     # Clear all
     manager.clear_all()
@@ -410,8 +399,7 @@ def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, qapp):
     
     # Create shape
     props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    box_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box",
         color=(1.0, 0.0, 0.0),
@@ -420,26 +408,25 @@ def test_manager_signals_received_by_viewer(geometry_manager, ocp_widget, qapp):
     
     qapp.processEvents()
     assert len(created_calls) == 1
-    assert created_calls[0][0] == "box_1"
+    assert created_calls[0][0] == box_shape.shape_id
     
     # Update shape
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    geometry_manager.update_shape("box_1", new_props)
+    geometry_manager.update_shape(box_shape.shape_id, new_props)
     
     qapp.processEvents()
     assert len(updated_calls) == 1
-    assert updated_calls[0][0] == "box_1"
+    assert updated_calls[0][0] == box_shape.shape_id
     
     # Remove shape
-    geometry_manager.remove_shape("box_1")
+    geometry_manager.remove_shape(box_shape.shape_id)
     
     qapp.processEvents()
     assert len(removed_calls) == 1
-    assert removed_calls[0] == "box_1"
+    assert removed_calls[0] == box_shape.shape_id
     
     # Clear all (with shapes)
     geometry_manager.create_shape(
-        shape_id="box_2",
         shape_type=ShapeType.BOX,
         name="Box 2",
         color=(1.0, 0.0, 0.0),
@@ -495,8 +482,7 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, qapp)
     
     # Create shape
     props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    box_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box",
         color=(1.0, 0.0, 0.0),
@@ -505,8 +491,8 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, qapp)
     
     qapp.processEvents()
     assert len(created_calls) == 1
-    assert created_calls[0][0] == "box_1"
-    assert "box_1" in geometry_tree.get_shape_ids()
+    assert created_calls[0][0] == box_shape.shape_id
+    assert box_shape.shape_id in geometry_tree.get_shape_ids()
     
     # Update shape
     new_props = BoxProperties(
@@ -515,23 +501,22 @@ def test_manager_signals_received_by_tree(geometry_manager, geometry_tree, qapp)
         depth=100.0,
         translation=Translation(x=10.0, y=20.0, z=30.0)
     )
-    geometry_manager.update_shape("box_1", new_props)
+    geometry_manager.update_shape(box_shape.shape_id, new_props)
     
     qapp.processEvents()
     assert len(updated_calls) == 1
-    assert updated_calls[0][0] == "box_1"
+    assert updated_calls[0][0] == box_shape.shape_id
     
     # Remove shape
-    geometry_manager.remove_shape("box_1")
+    geometry_manager.remove_shape(box_shape.shape_id)
     
     qapp.processEvents()
     assert len(removed_calls) == 1
-    assert removed_calls[0] == "box_1"
-    assert "box_1" not in geometry_tree.get_shape_ids()
+    assert removed_calls[0] == box_shape.shape_id
+    assert box_shape.shape_id not in geometry_tree.get_shape_ids()
     
     # Clear all
     geometry_manager.create_shape(
-        shape_id="box_2",
         shape_type=ShapeType.BOX,
         name="Box 2",
         color=(1.0, 0.0, 0.0),
@@ -554,8 +539,7 @@ def test_viewer_only_integration(geometry_manager, ocp_widget, qapp):
     
     # Create and manipulate shapes
     props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    box_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box",
         color=(1.0, 0.0, 0.0),
@@ -566,12 +550,12 @@ def test_viewer_only_integration(geometry_manager, ocp_widget, qapp):
     
     # Update shape
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    geometry_manager.update_shape("box_1", new_props)
+    geometry_manager.update_shape(box_shape.shape_id, new_props)
     
     qapp.processEvents()
     
     # Remove shape
-    geometry_manager.remove_shape("box_1")
+    geometry_manager.remove_shape(box_shape.shape_id)
     
     qapp.processEvents()
     
@@ -589,8 +573,7 @@ def test_tree_only_integration(geometry_manager, geometry_tree, qapp):
     
     # Create shapes
     props = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    box_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box",
         color=(1.0, 0.0, 0.0),
@@ -600,17 +583,17 @@ def test_tree_only_integration(geometry_manager, geometry_tree, qapp):
     qapp.processEvents()
     
     # Verify in tree
-    assert "box_1" in geometry_tree.get_shape_ids()
+    assert box_shape.shape_id in geometry_tree.get_shape_ids()
     
     # Update and verify
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    geometry_manager.update_shape("box_1", new_props)
+    geometry_manager.update_shape(box_shape.shape_id, new_props)
     
     qapp.processEvents()
-    assert "box_1" in geometry_tree.get_shape_ids()
+    assert box_shape.shape_id in geometry_tree.get_shape_ids()
     
     # Remove and verify
-    geometry_manager.remove_shape("box_1")
+    geometry_manager.remove_shape(box_shape.shape_id)
     
     qapp.processEvents()
-    assert "box_1" not in geometry_tree.get_shape_ids()
+    assert box_shape.shape_id not in geometry_tree.get_shape_ids()

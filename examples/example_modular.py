@@ -203,10 +203,6 @@ class CADViewerWindow(QMainWindow):
         Args:
             shape_type: Type of shape to create
         """
-        import uuid
-        
-        # Generate unique ID
-        shape_id = f"{shape_type.value}_{uuid.uuid4().hex[:8]}"
         
         # Default fixed color (light gray-blue)
         color = (0.7, 0.75, 0.8)
@@ -227,7 +223,6 @@ class CADViewerWindow(QMainWindow):
         
         # Create the shape via geometry manager
         self.geometry_manager.create_shape(
-            shape_id=shape_id,
             shape_type=shape_type,
             name=shape_name,
             color=color,
@@ -311,7 +306,6 @@ class CADViewerWindow(QMainWindow):
 
         # 1. Box at origin
         self.geometry_manager.create_shape(
-            shape_id="box_1",
             shape_type=ShapeType.BOX,
             name="Red Box",
             color=(0.7, 0.2, 0.2),
@@ -324,7 +318,6 @@ class CADViewerWindow(QMainWindow):
 
         # 2. Sphere
         self.geometry_manager.create_shape(
-            shape_id="sphere_1",
             shape_type=ShapeType.SPHERE,
             name="Green Sphere",
             color=(0.2, 0.7, 0.2),
@@ -337,7 +330,6 @@ class CADViewerWindow(QMainWindow):
 
         # 3. Cylinder
         self.geometry_manager.create_shape(
-            shape_id="cylinder_1",
             shape_type=ShapeType.CYLINDER,
             name="Blue Cylinder",
             color=(0.2, 0.2, 0.7),
@@ -350,7 +342,6 @@ class CADViewerWindow(QMainWindow):
 
         # 4. Cone
         self.geometry_manager.create_shape(
-            shape_id="cone_1",
             shape_type=ShapeType.CONE,
             name="Yellow Cone",
             color=(0.7, 0.7, 0.2),
@@ -363,7 +354,6 @@ class CADViewerWindow(QMainWindow):
 
         # 5. Torus
         self.geometry_manager.create_shape(
-            shape_id="torus_1",
             shape_type=ShapeType.TORUS,
             name="Magenta Torus",
             color=(0.7, 0.2, 0.7),

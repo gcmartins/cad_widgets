@@ -42,8 +42,7 @@ def test_create_box_shape(geometry_manager, qapp):
     
     spy = QSignalSpy(geometry_manager.shape_created)
     
-    shape = geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
@@ -53,22 +52,22 @@ def test_create_box_shape(geometry_manager, qapp):
     qapp.processEvents()
     
     # Check shape was created
-    assert shape is not None
+    assert managed_shape is not None
     
     # Check signal was emitted
     assert spy.count() == 1
     signal_args = spy.at(0)
-    assert signal_args[0] == "box_1"
+    assert signal_args[0] == managed_shape.shape_id
     assert isinstance(signal_args[1], ManagedShape)
     
     # Check managed shape
-    managed_shape = geometry_manager.get_shape("box_1")
-    assert managed_shape is not None
-    assert managed_shape.shape_type == ShapeType.BOX
-    assert managed_shape.name == "Test Box"
-    assert managed_shape.color == (1.0, 0.0, 0.0)
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape is not None
+    assert retrieved_shape.shape_type == ShapeType.BOX
+    assert retrieved_shape.name == "Test Box"
+    assert retrieved_shape.color == (1.0, 0.0, 0.0)
     # Transparency is now global only, not per-shape
-    assert managed_shape.properties == properties
+    assert retrieved_shape.properties == properties
 
 
 def test_create_sphere_shape(geometry_manager, qapp):
@@ -79,20 +78,19 @@ def test_create_sphere_shape(geometry_manager, qapp):
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="sphere_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Test Sphere",
         color=(0.0, 1.0, 0.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("sphere_1")
     assert managed_shape is not None
-    assert managed_shape.shape_type == ShapeType.SPHERE
-    assert isinstance(managed_shape.properties, SphereProperties)
-    assert managed_shape.properties.radius == 25.0
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape is not None
+    assert retrieved_shape.shape_type == ShapeType.SPHERE
+    assert isinstance(retrieved_shape.properties, SphereProperties)
+    assert retrieved_shape.properties.radius == 25.0
 
 
 def test_create_cylinder_shape(geometry_manager, qapp):
@@ -104,19 +102,18 @@ def test_create_cylinder_shape(geometry_manager, qapp):
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="cylinder_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.CYLINDER,
         name="Test Cylinder",
         color=(0.0, 0.0, 1.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("cylinder_1")
     assert managed_shape is not None
-    assert managed_shape.shape_type == ShapeType.CYLINDER
-    assert isinstance(managed_shape.properties, CylinderProperties)
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape is not None
+    assert retrieved_shape.shape_type == ShapeType.CYLINDER
+    assert isinstance(retrieved_shape.properties, CylinderProperties)
 
 
 def test_create_cone_shape(geometry_manager, qapp):
@@ -128,19 +125,18 @@ def test_create_cone_shape(geometry_manager, qapp):
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="cone_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.CONE,
         name="Test Cone",
         color=(1.0, 1.0, 0.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("cone_1")
     assert managed_shape is not None
-    assert managed_shape.shape_type == ShapeType.CONE
-    assert isinstance(managed_shape.properties, ConeProperties)
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape is not None
+    assert retrieved_shape.shape_type == ShapeType.CONE
+    assert isinstance(retrieved_shape.properties, ConeProperties)
 
 
 def test_create_torus_shape(geometry_manager, qapp):
@@ -152,38 +148,37 @@ def test_create_torus_shape(geometry_manager, qapp):
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="torus_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.TORUS,
         name="Test Torus",
         color=(1.0, 0.0, 1.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("torus_1")
     assert managed_shape is not None
-    assert managed_shape.shape_type == ShapeType.TORUS
-    assert isinstance(managed_shape.properties, TorusProperties)
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape is not None
+    assert retrieved_shape.shape_type == ShapeType.TORUS
+    assert isinstance(retrieved_shape.properties, TorusProperties)
 
 
 def test_update_shape(geometry_manager, qapp):
     """Test updating a shape with new properties."""
     # Create initial shape
     initial_properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
         properties=initial_properties
     )
+    shape_id = managed_shape.shape_id
     
     spy = QSignalSpy(geometry_manager.shape_updated)
     
     # Update with new properties
     new_properties = BoxProperties(width=100.0, height=80.0, depth=60.0)
-    updated_shape = geometry_manager.update_shape("box_1", new_properties)
+    updated_shape = geometry_manager.update_shape(shape_id, new_properties)
     
     qapp.processEvents()
     
@@ -193,14 +188,14 @@ def test_update_shape(geometry_manager, qapp):
     # Check signal was emitted
     assert spy.count() == 1
     signal_args = spy.at(0)
-    assert signal_args[0] == "box_1"
+    assert signal_args[0] == shape_id
     assert isinstance(signal_args[1], ManagedShape)
     
     # Check updated properties
-    managed_shape = geometry_manager.get_shape("box_1")
-    assert managed_shape.properties.width == 100.0
-    assert managed_shape.properties.height == 80.0
-    assert managed_shape.properties.depth == 60.0
+    retrieved_shape = geometry_manager.get_shape(shape_id)
+    assert retrieved_shape.properties.width == 100.0
+    assert retrieved_shape.properties.height == 80.0
+    assert retrieved_shape.properties.depth == 60.0
 
 
 def test_update_nonexistent_shape(geometry_manager):
@@ -215,18 +210,18 @@ def test_remove_shape(geometry_manager, qapp):
     """Test removing a shape."""
     # Create shape
     properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
         properties=properties
     )
+    shape_id = managed_shape.shape_id
     
     spy = QSignalSpy(geometry_manager.shape_removed)
     
     # Remove shape
-    result = geometry_manager.remove_shape("box_1")
+    result = geometry_manager.remove_shape(shape_id)
     
     qapp.processEvents()
     
@@ -236,10 +231,10 @@ def test_remove_shape(geometry_manager, qapp):
     # Check signal was emitted
     assert spy.count() == 1
     signal_args = spy.at(0)
-    assert signal_args[0] == "box_1"
+    assert signal_args[0] == shape_id
     
     # Check shape is gone
-    assert geometry_manager.get_shape("box_1") is None
+    assert geometry_manager.get_shape(shape_id) is None
 
 
 def test_remove_nonexistent_shape(geometry_manager):
@@ -255,24 +250,21 @@ def test_get_all_shape_ids(geometry_manager):
     properties2 = SphereProperties(radius=25.0)
     properties3 = CylinderProperties(radius=15.0, height=50.0)
     
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    shape1 = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box 1",
         color=(1.0, 0.0, 0.0),
         properties=properties1
     )
     
-    geometry_manager.create_shape(
-        shape_id="sphere_1",
+    shape2 = geometry_manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Sphere 1",
         color=(0.0, 1.0, 0.0),
         properties=properties2
     )
     
-    geometry_manager.create_shape(
-        shape_id="cylinder_1",
+    shape3 = geometry_manager.create_shape(
         shape_type=ShapeType.CYLINDER,
         name="Cylinder 1",
         color=(0.0, 0.0, 1.0),
@@ -282,9 +274,9 @@ def test_get_all_shape_ids(geometry_manager):
     shape_ids = geometry_manager.get_all_shape_ids()
     
     assert len(shape_ids) == 3
-    assert "box_1" in shape_ids
-    assert "sphere_1" in shape_ids
-    assert "cylinder_1" in shape_ids
+    assert shape1.shape_id in shape_ids
+    assert shape2.shape_id in shape_ids
+    assert shape3.shape_id in shape_ids
 
 
 def test_clear_all(geometry_manager, qapp):
@@ -294,7 +286,6 @@ def test_clear_all(geometry_manager, qapp):
     properties2 = SphereProperties(radius=25.0)
     
     geometry_manager.create_shape(
-        shape_id="box_1",
         shape_type=ShapeType.BOX,
         name="Box 1",
         color=(1.0, 0.0, 0.0),
@@ -302,7 +293,6 @@ def test_clear_all(geometry_manager, qapp):
     )
     
     geometry_manager.create_shape(
-        shape_id="sphere_1",
         shape_type=ShapeType.SPHERE,
         name="Sphere 1",
         color=(0.0, 1.0, 0.0),
@@ -332,19 +322,18 @@ def test_shape_with_translation(geometry_manager):
         translation=Translation(x=100.0, y=50.0, z=25.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Translated Box",
         color=(1.0, 0.0, 0.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("box_1")
-    assert managed_shape.properties.translation.x == 100.0
-    assert managed_shape.properties.translation.y == 50.0
-    assert managed_shape.properties.translation.z == 25.0
+    assert managed_shape is not None
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape.properties.translation.x == 100.0
+    assert retrieved_shape.properties.translation.y == 50.0
+    assert retrieved_shape.properties.translation.z == 25.0
 
 
 def test_shape_with_rotation(geometry_manager):
@@ -355,37 +344,35 @@ def test_shape_with_rotation(geometry_manager):
         rotation=Rotation(x=45.0, y=30.0, z=15.0)
     )
     
-    shape = geometry_manager.create_shape(
-        shape_id="cylinder_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.CYLINDER,
         name="Rotated Cylinder",
         color=(0.0, 0.0, 1.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("cylinder_1")
-    assert managed_shape.properties.rotation.x == 45.0
-    assert managed_shape.properties.rotation.y == 30.0
-    assert managed_shape.properties.rotation.z == 15.0
+    assert managed_shape is not None
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved_shape.properties.rotation.x == 45.0
+    assert retrieved_shape.properties.rotation.y == 30.0
+    assert retrieved_shape.properties.rotation.z == 15.0
 
 
 def test_shape_with_transparency(geometry_manager):
     """Test creating a shape - transparency is now global only."""
     properties = SphereProperties(radius=25.0)
     
-    shape = geometry_manager.create_shape(
-        shape_id="sphere_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Transparent Sphere",
         color=(0.0, 1.0, 0.0),
         properties=properties
     )
     
-    assert shape is not None
-    managed_shape = geometry_manager.get_shape("sphere_1")
+    assert managed_shape is not None
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
     # Transparency is no longer a per-shape property
-    assert not hasattr(managed_shape, 'transparency')
+    assert not hasattr(retrieved_shape, 'transparency')
 
 
 def test_create_properties_for_type_box():
@@ -515,20 +502,20 @@ def test_multiple_signal_emissions(geometry_manager, qapp):
     removed_spy = QSignalSpy(geometry_manager.shape_removed)
     
     # Create shape
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.0, 0.0),
         properties=properties
     )
+    shape_id = managed_shape.shape_id
     
     # Update shape
     new_properties = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    geometry_manager.update_shape("box_1", new_properties)
+    geometry_manager.update_shape(shape_id, new_properties)
     
     # Remove shape
-    geometry_manager.remove_shape("box_1")
+    geometry_manager.remove_shape(shape_id)
     
     qapp.processEvents()
     
@@ -542,39 +529,37 @@ def test_managed_shape_structure(geometry_manager):
     """Test ManagedShape dataclass structure."""
     properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
     
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    managed_shape = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Test Box",
         color=(1.0, 0.5, 0.0),
         properties=properties
     )
     
-    managed_shape = geometry_manager.get_shape("box_1")
+    retrieved_shape = geometry_manager.get_shape(managed_shape.shape_id)
     
     # Verify all fields
-    assert hasattr(managed_shape, 'shape')
-    assert hasattr(managed_shape, 'shape_type')
-    assert hasattr(managed_shape, 'name')
-    assert hasattr(managed_shape, 'color')
-    assert hasattr(managed_shape, 'properties')
+    assert hasattr(retrieved_shape, 'shape')
+    assert hasattr(retrieved_shape, 'shape_type')
+    assert hasattr(retrieved_shape, 'name')
+    assert hasattr(retrieved_shape, 'color')
+    assert hasattr(retrieved_shape, 'properties')
     # Transparency is now global only, not per-shape
-    assert not hasattr(managed_shape, 'transparency')
+    assert not hasattr(retrieved_shape, 'transparency')
     
     # Verify values
-    assert managed_shape.shape_type == ShapeType.BOX
-    assert managed_shape.name == "Test Box"
-    assert managed_shape.color == (1.0, 0.5, 0.0)
+    assert retrieved_shape.shape_type == ShapeType.BOX
+    assert retrieved_shape.name == "Test Box"
+    assert retrieved_shape.color == (1.0, 0.5, 0.0)
     # Transparency is no longer a per-shape property
-    assert isinstance(managed_shape.properties, BoxProperties)
+    assert isinstance(retrieved_shape.properties, BoxProperties)
 
 
 def test_sequential_operations(geometry_manager):
     """Test sequential create, update, and query operations."""
     # Create first shape
     props1 = BoxProperties(width=50.0, height=50.0, depth=50.0)
-    geometry_manager.create_shape(
-        shape_id="box_1",
+    shape1 = geometry_manager.create_shape(
         shape_type=ShapeType.BOX,
         name="Box 1",
         color=(1.0, 0.0, 0.0),
@@ -583,8 +568,7 @@ def test_sequential_operations(geometry_manager):
     
     # Create second shape
     props2 = SphereProperties(radius=25.0)
-    geometry_manager.create_shape(
-        shape_id="sphere_1",
+    shape2 = geometry_manager.create_shape(
         shape_type=ShapeType.SPHERE,
         name="Sphere 1",
         color=(0.0, 1.0, 0.0),
@@ -596,16 +580,16 @@ def test_sequential_operations(geometry_manager):
     
     # Update first shape
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
-    geometry_manager.update_shape("box_1", new_props)
+    geometry_manager.update_shape(shape1.shape_id, new_props)
     
     # Verify first shape updated
-    updated_shape = geometry_manager.get_shape("box_1")
+    updated_shape = geometry_manager.get_shape(shape1.shape_id)
     assert updated_shape.properties.width == 100.0
     
     # Remove second shape
-    geometry_manager.remove_shape("sphere_1")
+    geometry_manager.remove_shape(shape2.shape_id)
     
     # Verify only one remains
     assert len(geometry_manager.get_all_shape_ids()) == 1
-    assert "box_1" in geometry_manager.get_all_shape_ids()
-    assert "sphere_1" not in geometry_manager.get_all_shape_ids()
+    assert shape1.shape_id in geometry_manager.get_all_shape_ids()
+    assert shape2.shape_id not in geometry_manager.get_all_shape_ids()

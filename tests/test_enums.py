@@ -40,7 +40,7 @@ def test_widget_with_view_direction_enum(qapp):
     """Test using ViewDirection enum with OCPWidget."""
     widget = OCPWidget()
     box = GeometryService().create_box(100, 100, 100)
-    widget.display_shape(box)
+    widget.display_shape(box, "test_box")
     view = widget.get_view()
 
     # Test with enum instead of string
@@ -72,7 +72,7 @@ def test_widget_with_display_mode_enum(qapp):
     """Test using DisplayMode enum with OCPWidget."""
     widget = OCPWidget()
     box = GeometryService().create_box(100, 100, 100)
-    widget.display_shape(box)
+    widget.display_shape(box, "test_box")
     ctx = widget.get_context()
 
     # Test with enum instead of string
@@ -95,11 +95,11 @@ def test_display_shape_with_display_mode_enum(qapp):
 
     # Test with enum values - set mode globally before displaying
     widget.set_display_mode(DisplayMode.WIREFRAME)
-    ais_shape1 = widget.display_shape(box1)
+    ais_shape1 = widget.display_shape(box1, "box1")
     assert ais_shape1 is not None
 
     widget.set_display_mode(DisplayMode.SHADED)
-    ais_shape2 = widget.display_shape(box2)
+    ais_shape2 = widget.display_shape(box2, "box2")
     assert ais_shape2 is not None
 
 
@@ -115,7 +115,7 @@ def test_all_view_directions_with_enum(qapp):
     """Test all view directions using enums."""
     widget = OCPWidget()
     box = GeometryService().create_box(100, 100, 100)
-    widget.display_shape(box)
+    widget.display_shape(box, "test_box")
 
     # Test all enum values work without error
     for direction in ViewDirection:

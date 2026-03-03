@@ -26,6 +26,7 @@ from ..models.shape_properties import (
 @dataclass
 class ManagedShape:
     """A managed shape with its properties and metadata."""
+    shape_id: str
     shape: Any  # TopoDS_Shape
     shape_type: ShapeType
     name: str
@@ -62,9 +63,12 @@ class GeometryManager(QObject):
         self._shapes: Dict[str, ManagedShape] = {}
         self._geo_service = GeometryService()
 
+    def _new_shape_id(self, shape_type: ShapeType) -> str:
+        """Generate a new unique shape ID based on shape type."""
+        return f"{shape_type.value}_{uuid.uuid4().hex[:8]}"
+
     def create_shape(
         self,
-        shape_id: str,
         shape_type: ShapeType,
         name: str,
         color: Tuple[float, float, float],
@@ -74,7 +78,6 @@ class GeometryManager(QObject):
         Create a shape from properties.
         
         Args:
-            shape_id: Unique identifier for the shape
             shape_type: Type of shape (ShapeType enum)
             name: Display name
             color: RGB color tuple
@@ -86,7 +89,9 @@ class GeometryManager(QObject):
         shape = self._create_shape_from_properties(shape_type, properties)
         
         if shape:
+            shape_id = self._new_shape_id(shape_type)
             managed_shape = ManagedShape(
+                shape_id=shape_id,
                 shape=shape,
                 shape_type=shape_type,
                 name=name,
@@ -98,7 +103,7 @@ class GeometryManager(QObject):
             # Emit signal for observers
             self.shape_created.emit(shape_id, managed_shape)
         
-        return shape
+        return managed_shape
 
     def update_shape(
         self,
@@ -235,7 +240,7 @@ class GeometryManager(QObject):
                 return None
         
         # Generate new shape ID
-        new_shape_id = f"union_{uuid.uuid4().hex[:8]}"
+        new_shape_id = self._new_shape_id(ShapeType.UNION)
         
         # Create managed shape with basic properties (translation/rotation are already applied)   
         properties = ShapeProperties(
@@ -244,6 +249,7 @@ class GeometryManager(QObject):
         )
         
         new_managed_shape = ManagedShape(
+            shape_id=new_shape_id,
             shape=result_shape,
             shape_type=ShapeType.UNION,
             name=result_name,
@@ -295,7 +301,7 @@ class GeometryManager(QObject):
                 return None
         
         # Generate new shape ID
-        new_shape_id = f"subtract_{uuid.uuid4().hex[:8]}"
+        new_shape_id = self._new_shape_id(ShapeType.SUBTRACTION)
         
         # Create managed shape with basic properties
         properties = ShapeProperties(
@@ -304,6 +310,7 @@ class GeometryManager(QObject):
         )
         
         new_managed_shape = ManagedShape(
+            shape_id=new_shape_id,
             shape=result_shape,
             shape_type=ShapeType.SUBTRACTION,
             name=result_name,

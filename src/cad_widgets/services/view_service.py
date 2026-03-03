@@ -11,7 +11,6 @@ from OCP.Graphic3d import Graphic3d_Camera
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
 from OCP.Prs3d import Prs3d_LineAspect
 from OCP.Aspect import Aspect_TOL_SOLID
-import uuid
 
 from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
 
@@ -275,11 +274,11 @@ class ViewService:
     def display_shape(
         self,
         shape,
+        shape_id: str,
         color: Optional[Tuple[float, float, float]] = None,
         update: bool = True,
         shape_type: str = "Shape",
         name: Optional[str] = None,
-        shape_id: Optional[str] = None,
     ) -> Optional[str]:
         """
         Display an OCP shape in the viewer.
@@ -296,10 +295,6 @@ class ViewService:
             str: Shape ID or None if error
         """
         try:
-            # Generate shape ID if not provided
-            if shape_id is None:
-                shape_id = str(uuid.uuid4())
-            
             # Create AIS shape
             ais_shape = AIS_Shape(shape)
 
