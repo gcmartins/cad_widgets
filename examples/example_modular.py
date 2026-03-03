@@ -167,6 +167,12 @@ class CADViewerWindow(QMainWindow):
         self.geometry_tree.shape_deleted.connect(
             self._on_shape_deleted
         )
+        self.geometry_tree.shapes_union_requested.connect(
+            self._on_shapes_union_requested
+        )
+        self.geometry_tree.shapes_subtract_requested.connect(
+            self._on_shapes_subtract_requested
+        )
 
         # Connect property editor signals
         self.property_editor.properties_changed.connect(self._on_properties_changed)
@@ -270,6 +276,38 @@ class CADViewerWindow(QMainWindow):
     def _on_clear_all(self):
         """Handle clear all request from UI."""
         self.geometry_manager.clear_all()  # This will emit all_cleared signal
+
+    def _on_shapes_union_requested(self, shape_ids: list):
+        """
+        Handle union request from geometry tree.
+        
+        Args:
+            shape_ids: List of shape IDs to union
+        """
+        result_id = self.geometry_manager.union_shapes(shape_ids)
+        if result_id:
+            # Fit view to show result
+            self.viewer.fit_all()
+            # Clear property editor since original shapes are removed
+            self.property_editor.clear_shape()
+        else:
+            print("Union operation failed")
+
+    def _on_shapes_subtract_requested(self, shape_ids: list):
+        """
+        Handle subtract request from geometry tree.
+        
+        Args:
+            shape_ids: List of shape IDs (first is base, rest subtracted)
+        """
+        result_id = self.geometry_manager.subtract_shapes(shape_ids)
+        if result_id:
+            # Fit view to show result
+            self.viewer.fit_all()
+            # Clear property editor since original shapes are removed
+            self.property_editor.clear_shape()
+        else:
+            print("Subtract operation failed")
 
     def load_example_shapes(self):
         """Load example 3D shapes into the viewer."""

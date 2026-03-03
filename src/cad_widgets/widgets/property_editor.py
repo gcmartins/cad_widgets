@@ -247,6 +247,8 @@ class PropertyEditorWidget(QWidget):
             "cylinder": ["radius", "height"],
             "cone": ["radius", "height"],
             "torus": ["radius", "length"],  # radius and tube_radius
+            "union": [],  # No size parameters for boolean operations
+            "subtraction": [],  # No size parameters for boolean operations
         }
         
         # Get relevant parameters for this shape type

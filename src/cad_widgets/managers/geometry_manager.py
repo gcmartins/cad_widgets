@@ -2,6 +2,7 @@
 Geometry Manager
 Manages geometry shapes, their properties, and interactions with the viewer
 """
+import uuid
 
 from typing import Dict, Optional, Tuple, Any
 from dataclasses import dataclass
@@ -17,6 +18,8 @@ from ..models.shape_properties import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    Translation,
+    Rotation
 )
 
 
@@ -120,10 +123,40 @@ class GeometryManager(QObject):
             return None
         
         managed_shape = self._shapes[shape_id]
-        new_shape = self._create_shape_from_properties(
-            managed_shape.shape_type,
-            properties
-        )
+        
+        # For UNION and SUBTRACTION shapes, we need to:
+        # 1. Unapply the current transformations to get back to the base shape
+        # 2. Apply the new transformations
+        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION):
+            # Get the base shape by unapplying current transformations
+            base_shape = managed_shape.shape
+            
+            # Unapply current translation (inverse operation)
+            old_tx = managed_shape.properties.translation.x
+            old_ty = managed_shape.properties.translation.y
+            old_tz = managed_shape.properties.translation.z
+            if old_tx != 0 or old_ty != 0 or old_tz != 0:
+                base_shape = self._geo_service.translate_shape(base_shape, -old_tx, -old_ty, -old_tz)
+            
+            # Unapply current rotation (inverse operation, in reverse order)
+            old_rz = managed_shape.properties.rotation.z
+            old_ry = managed_shape.properties.rotation.y
+            old_rx = managed_shape.properties.rotation.x
+            if old_rz != 0:
+                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (0, 0, 1), -old_rz)
+            if old_ry != 0:
+                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (0, 1, 0), -old_ry)
+            if old_rx != 0:
+                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (1, 0, 0), -old_rx)
+            
+            # Now apply new transformations to the base shape
+            new_shape = self._apply_transformations(base_shape, properties)
+        else:
+            # For primitive shapes, recreate from properties
+            new_shape = self._create_shape_from_properties(
+                managed_shape.shape_type,
+                properties
+            )
         
         if new_shape:
             managed_shape.shape = new_shape
@@ -175,6 +208,162 @@ class GeometryManager(QObject):
         # Emit signal for observers
         self.all_cleared.emit()
 
+    def union_shapes(self, shape_ids: list[str]) -> Optional[str]:
+        """
+        Perform boolean union on multiple shapes.
+        Creates a new shape and removes the original shapes.
+        
+        Args:
+            shape_ids: List of shape IDs to union
+            
+        Returns:
+            New shape ID or None if operation fails
+        """
+        if len(shape_ids) < 2:
+            return None
+        
+        # Get all shapes
+        shapes = [self._shapes[sid] for sid in shape_ids if sid in self._shapes]
+        if len(shapes) < 2:
+            return None
+        
+        # Start with first shape
+        result_shape = shapes[0].shape
+        result_color = shapes[0].color
+        result_name = "Union"
+        
+        # Union with remaining shapes
+        for managed_shape in shapes[1:]:
+            result_shape = self._geo_service.fuse_shapes(result_shape, managed_shape.shape)
+            if result_shape is None:
+                return None
+        
+        # Generate new shape ID
+        new_shape_id = f"union_{uuid.uuid4().hex[:8]}"
+        
+        # Create managed shape with basic properties (translation/rotation are already applied)   
+        properties = ShapeProperties(
+            translation=Translation(x=0, y=0, z=0),
+            rotation=Rotation(x=0, y=0, z=0)
+        )
+        
+        new_managed_shape = ManagedShape(
+            shape=result_shape,
+            shape_type=ShapeType.UNION,
+            name=result_name,
+            color=result_color,
+            properties=properties,
+            transparency=0.0
+        )
+        
+        # Remove original shapes
+        for shape_id in shape_ids:
+            if shape_id in self._shapes:
+                del self._shapes[shape_id]
+                self.shape_removed.emit(shape_id)
+        
+        # Add new shape
+        self._shapes[new_shape_id] = new_managed_shape
+        self.shape_created.emit(new_shape_id, new_managed_shape)
+        
+        return new_shape_id
+
+    def subtract_shapes(self, shape_ids: list[str]) -> Optional[str]:
+        """
+        Perform boolean subtraction on multiple shapes.
+        Subtracts all shapes from the first one.
+        Creates a new shape and removes the original shapes.
+        
+        Args:
+            shape_ids: List of shape IDs (first is base, rest are subtracted)
+            
+        Returns:
+            New shape ID or None if operation fails
+        """
+        if len(shape_ids) < 2:
+            return None
+        
+        # Get all shapes
+        shapes = [self._shapes[sid] for sid in shape_ids if sid in self._shapes]
+        if len(shapes) < 2:
+            return None
+        
+        # Start with first shape as base
+        result_shape = shapes[0].shape
+        result_color = shapes[0].color
+        result_name = "Subtraction"
+        
+        # Subtract remaining shapes
+        for managed_shape in shapes[1:]:
+            result_shape = self._geo_service.cut_shapes(result_shape, managed_shape.shape)
+            if result_shape is None:
+                return None
+        
+        # Generate new shape ID
+        new_shape_id = f"subtract_{uuid.uuid4().hex[:8]}"
+        
+        # Create managed shape with basic properties
+        properties = ShapeProperties(
+            translation=Translation(x=0, y=0, z=0),
+            rotation=Rotation(x=0, y=0, z=0)
+        )
+        
+        new_managed_shape = ManagedShape(
+            shape=result_shape,
+            shape_type=ShapeType.SUBTRACTION,
+            name=result_name,
+            color=result_color,
+            properties=properties,
+            transparency=0.0
+        )
+        
+        # Remove original shapes
+        for shape_id in shape_ids:
+            if shape_id in self._shapes:
+                del self._shapes[shape_id]
+                self.shape_removed.emit(shape_id)
+        
+        # Add new shape
+        self._shapes[new_shape_id] = new_managed_shape
+        self.shape_created.emit(new_shape_id, new_managed_shape)
+        
+        return new_shape_id
+
+    def _apply_transformations(
+        self,
+        shape: Any,
+        properties: ShapeProperties
+    ) -> Any:
+        """
+        Apply rotation and translation transformations to a shape.
+        
+        Args:
+            shape: The shape to transform
+            properties: Shape properties containing rotation and translation
+            
+        Returns:
+            Transformed shape
+        """
+        # Apply rotation
+        rx = properties.rotation.x
+        ry = properties.rotation.y
+        rz = properties.rotation.z
+        if rx != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (1, 0, 0), rx)
+        if ry != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 1, 0), ry)
+        if rz != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 0, 1), rz)
+        
+        # Apply translation
+        tx = properties.translation.x
+        ty = properties.translation.y
+        tz = properties.translation.z
+        if tx != 0 or ty != 0 or tz != 0:
+            shape = self._geo_service.translate_shape(shape, tx, ty, tz)
+
+        return shape
+
     def _create_shape_from_properties(
         self,
         shape_type: ShapeType,
@@ -218,23 +407,8 @@ class GeometryManager(QObject):
         else:
             return None
 
-        # Apply translation
-        tx = properties.translation.x
-        ty = properties.translation.y
-        tz = properties.translation.z
-        if tx != 0 or ty != 0 or tz != 0:
-            shape = self._geo_service.translate_shape(shape, tx, ty, tz)
-
-        # Apply rotation
-        rx = properties.rotation.x
-        ry = properties.rotation.y
-        rz = properties.rotation.z
-        if rx != 0:
-            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (1, 0, 0), rx)
-        if ry != 0:
-            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 1, 0), ry)
-        if rz != 0:
-            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 0, 1), rz)
+        # Apply transformations (rotation and translation)
+        shape = self._apply_transformations(shape, properties)
 
         return shape
 

@@ -49,3 +49,5 @@ class ShapeType(StrEnum):
     CYLINDER = "cylinder"
     CONE = "cone"
     TORUS = "torus"
+    UNION = "union"
+    SUBTRACTION = "subtraction"

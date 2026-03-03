@@ -38,6 +38,8 @@ class GeometryTreeWidget(QWidget):
         shape_deleted(str): Emitted when a shape is deleted (shape_id)
         clear_all_requested(): Emitted when user requests to clear all shapes
         shape_creation_requested(ShapeType): Emitted when user requests to create a new shape
+        shapes_union_requested(list): Emitted when user requests to union selected shapes (list of shape_ids)
+        shapes_subtract_requested(list): Emitted when user requests to subtract shapes (list of shape_ids)
     """
 
     # Qt Signals
@@ -46,6 +48,8 @@ class GeometryTreeWidget(QWidget):
     shape_deleted = Signal(str)
     clear_all_requested = Signal()
     shape_creation_requested = Signal(object)  # ShapeType
+    shapes_union_requested = Signal(list)  # List of shape_ids
+    shapes_subtract_requested = Signal(list)  # List of shape_ids
 
     def __init__(self, parent=None):
         """Initialize the geometry tree widget."""
@@ -77,7 +81,7 @@ class GeometryTreeWidget(QWidget):
         
         # Configure tree
         self.tree.setAlternatingRowColors(True)
-        self.tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+        self.tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
         
         # Enable context menu
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -324,6 +328,14 @@ class GeometryTreeWidget(QWidget):
         # Create context menu
         menu = QMenu(self)
         
+        # Get selected items
+        selected_items = self.tree.selectedItems()
+        selected_shape_ids = []
+        for item in selected_items:
+            shape_id = item.data(0, Qt.ItemDataRole.UserRole)
+            if shape_id:
+                selected_shape_ids.append(shape_id)
+        
         # Check if right-clicking on an item
         item = self.tree.itemAt(position)
         shape_id = None
@@ -335,6 +347,18 @@ class GeometryTreeWidget(QWidget):
             delete_action = QAction("Delete Shape", self)
             delete_action.triggered.connect(lambda: self.shape_deleted.emit(shape_id))
             menu.addAction(delete_action)
+            menu.addSeparator()
+        
+        # If multiple shapes are selected, add boolean operations
+        if len(selected_shape_ids) >= 2:
+            union_action = QAction(f"Union ({len(selected_shape_ids)} shapes)", self)
+            union_action.triggered.connect(lambda: self.shapes_union_requested.emit(selected_shape_ids))
+            menu.addAction(union_action)
+            
+            subtract_action = QAction(f"Subtract ({len(selected_shape_ids)} shapes)", self)
+            subtract_action.triggered.connect(lambda: self.shapes_subtract_requested.emit(selected_shape_ids))
+            menu.addAction(subtract_action)
+            
             menu.addSeparator()
         
         # Add "Create Shape" submenu
