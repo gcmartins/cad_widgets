@@ -254,6 +254,9 @@ class PropertyEditorWidget(QWidget):
         
         # Show/hide parameters
         size_layout = self.size_group.layout()
+        if not isinstance(size_layout, QFormLayout):
+            return
+            
         for i in range(size_layout.rowCount()):
             label_item = size_layout.itemAt(i, QFormLayout.ItemRole.LabelRole)
             field_item = size_layout.itemAt(i, QFormLayout.ItemRole.FieldRole)
@@ -261,6 +264,9 @@ class PropertyEditorWidget(QWidget):
             if label_item and field_item:
                 label_widget = label_item.widget()
                 field_widget = field_item.widget()
+                
+                if label_widget is None or field_widget is None:
+                    continue
                 
                 # Find which parameter this row represents
                 for param_name, spinbox in self.size_spinboxes.items():
@@ -273,7 +279,7 @@ class PropertyEditorWidget(QWidget):
                         
     def _get_current_properties(self) -> Dict[str, Any]:
         """Get the current property values from the UI."""
-        properties = {}
+        properties: Dict[str, Any] = {}
         
         # Get size parameters (only visible ones)
         for param_name, spinbox in self.size_spinboxes.items():

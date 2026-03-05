@@ -274,15 +274,6 @@ class GeometryTreeWidget(QWidget):
             if shape_id:
                 selected_shape_ids.append(shape_id)
         
-        # Check if right-clicking on an item
-        item = self.tree.itemAt(position)
-        shape_id = None
-        if item:
-            shape_id = item.data(0, Qt.ItemDataRole.UserRole)
-            # If clicking on an item that's not selected, use only that item
-            if shape_id and shape_id not in selected_shape_ids:
-                selected_shape_ids = [shape_id]
-        
         # If there are shapes to delete, add delete option
         if len(selected_shape_ids) > 0:
             if len(selected_shape_ids) == 1:
