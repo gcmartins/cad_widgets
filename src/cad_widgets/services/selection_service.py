@@ -6,7 +6,8 @@ Handles all selection-related operations for OCP viewer
 from typing import List
 from OCP.AIS import AIS_InteractiveContext
 from OCP.V3d import V3d_View
-from OCP.Quantity import Quantity_Color, Quantity_NOC_ORANGE, Quantity_NOC_CYAN1
+from OCP.Quantity import Quantity_Color, Quantity_NOC_RED, Quantity_NOC_CYAN1
+from OCP.Prs3d import Prs3d_TypeOfHighlight
 
 from cad_widgets.enums import SelectionMode
 
@@ -29,20 +30,29 @@ class SelectionService:
     def _configure_selection_colors(self):
         """Configure stronger highlight and selection colors."""
         try:
-            # Get the highlight attributes for dynamic highlighting (hover)
-            highlight_drawer = self._context.HighlightStyle()
+            red_color = Quantity_Color(Quantity_NOC_RED)
+            cyan_color = Quantity_Color(Quantity_NOC_CYAN1)
+            
+            # Configure dynamic highlighting (hover) - cyan color
+            highlight_drawer = self._context.HighlightStyle(Prs3d_TypeOfHighlight.Prs3d_TypeOfHighlight_Dynamic)
             if highlight_drawer:
-                # Set highlight color to cyan for hover effect
-                highlight_color = Quantity_Color(Quantity_NOC_CYAN1)
-                highlight_drawer.SetColor(highlight_color)
+                highlight_drawer.SetColor(cyan_color)
 
-            # Get the selection attributes for selected entities
-            selection_drawer = self._context.SelectionStyle()
+            # Configure whole object selection - red color
+            selection_drawer = self._context.HighlightStyle(Prs3d_TypeOfHighlight.Prs3d_TypeOfHighlight_Selected)
             if selection_drawer:
-                # Set selection color to a strong orange
-                selection_color = Quantity_Color(Quantity_NOC_ORANGE)
-                selection_drawer.SetColor(selection_color)
-
+                selection_drawer.SetColor(red_color)
+            
+            # Configure LOCAL DYNAMIC (hover over sub-shapes: faces, edges, vertices) - cyan
+            local_dynamic_drawer = self._context.HighlightStyle(Prs3d_TypeOfHighlight.Prs3d_TypeOfHighlight_LocalDynamic)
+            if local_dynamic_drawer:
+                local_dynamic_drawer.SetColor(cyan_color)
+            
+            # Configure LOCAL SELECTED (selected sub-shapes: faces, edges, vertices) - RED
+            local_selected_drawer = self._context.HighlightStyle(Prs3d_TypeOfHighlight.Prs3d_TypeOfHighlight_LocalSelected)
+            if local_selected_drawer:
+                local_selected_drawer.SetColor(red_color)
+                
             # Make selection more prominent
             self._context.SetToHilightSelected(True)
 
@@ -75,6 +85,9 @@ class SelectionService:
             # Activate the selected mode for all displayed objects
             if self._selection_enabled:
                 self._context.Activate(shape_type, True)
+                
+            # Reconfigure colors after mode change to ensure consistency
+            self._configure_selection_colors()
 
         except Exception as e:
             print(f"Error setting selection mode: {e}")
