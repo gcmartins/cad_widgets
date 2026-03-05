@@ -29,18 +29,22 @@ class GeometryService:
         position: Tuple[float, float, float] = (0, 0, 0),
     ) -> TopoDS_Shape:
         """
-        Create a box (rectangular prism).
+        Create a box (rectangular prism) centered at the specified position.
 
         Args:
             width: Width (X dimension)
             height: Height (Y dimension)
             depth: Depth (Z dimension)
-            position: Position tuple (x, y, z) of the box corner (default: origin)
+            position: Position tuple (x, y, z) of the box center (default: origin)
 
         Returns:
             TopoDS_Shape representing the box
         """
-        pos = gp_Pnt(*position)
+        # Offset position to center the box at the specified position
+        corner_x = position[0] - width / 2
+        corner_y = position[1] - height / 2
+        corner_z = position[2] - depth / 2
+        pos = gp_Pnt(corner_x, corner_y, corner_z)
         box_maker = BRepPrimAPI_MakeBox(pos, width, height, depth)
         return box_maker.Shape()
 
@@ -70,18 +74,26 @@ class GeometryService:
         direction: Tuple[float, float, float] = (0, 0, 1),
     ) -> TopoDS_Shape:
         """
-        Create a cylinder.
+        Create a cylinder centered at the specified position.
 
         Args:
             radius: Radius of the cylinder
             height: Height of the cylinder
-            position: Position tuple (x, y, z) for the cylinder base
+            position: Position tuple (x, y, z) for the cylinder center
             direction: Direction tuple (x, y, z) for the cylinder axis (default: Z-axis)
 
         Returns:
             TopoDS_Shape representing the cylinder
         """
-        axis = gp_Ax2(gp_Pnt(*position), gp_Dir(*direction))
+        # Offset position to center the cylinder at the specified position
+        # Calculate offset along the direction vector
+        dir_vec = gp_Dir(*direction)
+        offset = height / 2
+        base_x = position[0] - dir_vec.X() * offset
+        base_y = position[1] - dir_vec.Y() * offset
+        base_z = position[2] - dir_vec.Z() * offset
+        
+        axis = gp_Ax2(gp_Pnt(base_x, base_y, base_z), dir_vec)
         cylinder_maker = BRepPrimAPI_MakeCylinder(axis, radius, height)
         return cylinder_maker.Shape()
 

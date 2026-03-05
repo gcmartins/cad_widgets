@@ -192,14 +192,16 @@ class CylinderProperties(ShapeProperties):
 @dataclass
 class ConeProperties(ShapeProperties):
     """Properties for cone shapes."""
-    radius: float = 30.0
+    base_radius: float = 30.0  # Base radius
+    top_radius: float = 10.0  # Top radius
     height: float = 70.0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         result = super().to_dict()
         result.update({
-            "radius": self.radius,
+            "base_radius": self.base_radius,
+            "top_radius": self.top_radius,
             "height": self.height,
         })
         return result
@@ -208,7 +210,8 @@ class ConeProperties(ShapeProperties):
     def from_dict(cls, data: Dict[str, Any]) -> "ConeProperties":
         """Create from dictionary."""
         return cls(
-            radius=data.get("radius", 30.0),
+            base_radius=data.get("base_radius", 30.0),
+            top_radius=data.get("top_radius", 10.0),
             height=data.get("height", 70.0),
             translation=Translation.from_dict(data.get("translation", {})),
             rotation=Rotation.from_dict(data.get("rotation", {})),
@@ -218,7 +221,8 @@ class ConeProperties(ShapeProperties):
         """Get formatted properties for display."""
         formatted = super().get_formatted_properties()
         formatted.update({
-            "Radius": f"{self.radius:.2f}",
+            "Base Radius": f"{self.base_radius:.2f}",
+            "Top Radius": f"{self.top_radius:.2f}",
             "Height": f"{self.height:.2f}",
         })
         return formatted

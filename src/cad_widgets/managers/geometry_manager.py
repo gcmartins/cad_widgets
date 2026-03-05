@@ -396,8 +396,8 @@ class GeometryManager(QObject):
             )
         elif shape_type == ShapeType.CONE and isinstance(properties, ConeProperties):
             shape = self._geo_service.create_cone(
-                properties.radius,
-                properties.radius * 0.2,
+                properties.base_radius,
+                properties.top_radius,
                 properties.height
             )
         elif shape_type == ShapeType.TORUS and isinstance(properties, TorusProperties):

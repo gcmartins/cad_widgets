@@ -35,11 +35,11 @@ def test_set_shape_box(property_editor):
         "rotation": {"x": 0.0, "y": 90.0, "z": 0.0},
     }
     
-    property_editor.set_shape("box_1", "Box", properties)
+    property_editor.set_shape("box_1", "Box", "Box1", properties)
     
     assert property_editor._current_shape_id == "box_1"
     assert property_editor._current_shape_type == "Box"
-    assert property_editor.shape_info_label.text() == "Editing: Box (box_1)"
+    assert property_editor.shape_info_label.text() == "Editing: Box1"
     assert property_editor.size_group.isEnabled()
     assert property_editor.translation_group.isEnabled()
     assert property_editor.rotation_group.isEnabled()
@@ -72,7 +72,7 @@ def test_set_shape_sphere(property_editor):
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
     
-    property_editor.set_shape("sphere_1", "Sphere", properties)
+    property_editor.set_shape("sphere_1", "Sphere", "Sphere1", properties)
     
     assert property_editor._current_shape_id == "sphere_1"
     assert property_editor._current_shape_type == "Sphere"
@@ -94,7 +94,7 @@ def test_set_shape_cylinder(property_editor):
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
     
-    property_editor.set_shape("cylinder_1", "Cylinder", properties)
+    property_editor.set_shape("cylinder_1", "Cylinder", "Cylinder1", properties)
     
     # Check size parameters for cylinder
     assert property_editor.size_spinboxes["radius"].value() == 15.0
@@ -137,7 +137,7 @@ def test_get_current_properties_box(property_editor):
         "translation": {"x": 10.0, "y": 20.0, "z": 30.0},
         "rotation": {"x": 0.0, "y": 90.0, "z": 0.0},
     }
-    property_editor.set_shape("box_1", "Box", properties)
+    property_editor.set_shape("box_1", "Box", "Box1", properties)
     
     current_props = property_editor._get_current_properties()
     
@@ -161,7 +161,7 @@ def test_get_current_properties_sphere(property_editor):
         "translation": {"x": 5.0, "y": 10.0, "z": 15.0},
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
-    property_editor.set_shape("sphere_1", "Sphere", properties)
+    property_editor.set_shape("sphere_1", "Sphere", "Sphere1", properties)
     
     current_props = property_editor._get_current_properties()
     
@@ -184,7 +184,7 @@ def test_signal_emission_on_value_change(property_editor, qapp):
         "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
-    property_editor.set_shape("box_1", "Box", properties)
+    property_editor.set_shape("box_1", "Box", "Box1", properties)
     
     # Create signal spy
     spy = QSignalSpy(property_editor.properties_changed)
@@ -216,7 +216,7 @@ def test_signal_not_emitted_during_loading(property_editor):
     }
     
     # Set shape (which loads properties)
-    property_editor.set_shape("box_1", "Box", properties)
+    property_editor.set_shape("box_1", "Box", "Box1", properties)
     
     # No signal should have been emitted during loading
     assert spy.count() == 0
@@ -316,15 +316,17 @@ def test_shape_type_visibility_torus(property_editor):
 def test_shape_type_visibility_cone(property_editor):
     """Test that cone shows correct parameters."""
     properties = {
-        "radius": 30.0,
+        "base_radius": 30.0,
+        "top_radius": 10.0,
         "height": 70.0,
         "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
-    property_editor.set_shape("cone_1", "Cone", properties)
+    property_editor.set_shape("cone_1", "Cone", "Cone1", properties)
     
     # Check size parameters for cone
-    assert property_editor.size_spinboxes["radius"].isVisible()
+    assert property_editor.size_spinboxes["base_radius"].isVisible()
+    assert property_editor.size_spinboxes["top_radius"].isVisible()
     assert property_editor.size_spinboxes["height"].isVisible()
     assert not property_editor.size_spinboxes["width"].isVisible()
     assert not property_editor.size_spinboxes["depth"].isVisible()
@@ -338,7 +340,7 @@ def test_default_property_values(property_editor):
         "width": 50.0,
         # height and depth missing
     }
-    property_editor.set_shape("box_1", "Box", properties)
+    property_editor.set_shape("box_1", "Box", "Box1", properties)
     
     # Should have defaults for missing values
     assert property_editor.size_spinboxes["width"].value() == 50.0

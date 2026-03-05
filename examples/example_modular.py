@@ -192,6 +192,7 @@ class CADViewerWindow(QMainWindow):
             self.property_editor.set_shape(
                 shape_id,
                 managed_shape.shape_type,
+                managed_shape.name,
                 managed_shape.properties.to_dict()
             )
     
@@ -346,7 +347,7 @@ class CADViewerWindow(QMainWindow):
             name="Yellow Cone",
             color=(0.7, 0.7, 0.2),
             properties=ConeProperties(
-                radius=30, height=70,
+                base_radius=30, top_radius=10, height=70,
                 translation=Translation(x=100, y=100, z=0),
                 rotation=Rotation(x=0, y=0, z=0)
             )

@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QFormLayout,
     QLabel,
     QDoubleSpinBox,
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import (
     QFrame,
 )
 from PySide6.QtCore import Signal
+
+from cad_widgets.managers.geometry_manager import ManagedShape
 
 
 class PropertyEditorWidget(QWidget):
@@ -50,7 +53,7 @@ class PropertyEditorWidget(QWidget):
     def _setup_ui(self):
         """Setup the user interface."""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.setContentsMargins(0, 0, 0, 0)
         
         # Header
         header_label = QLabel("Property Editor")
@@ -74,7 +77,6 @@ class PropertyEditorWidget(QWidget):
         # Container widget for scroll area
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
-        scroll_layout.setContentsMargins(0, 0, 0, 0)
         
         # Size Parameters Group
         self.size_group = QGroupBox("Size Parameters")
@@ -89,6 +91,8 @@ class PropertyEditorWidget(QWidget):
         self._create_size_parameter("height", "Height:", size_layout)
         self._create_size_parameter("depth", "Depth:", size_layout)
         self._create_size_parameter("radius", "Radius:", size_layout)
+        self._create_size_parameter("base_radius", "Base Radius:", size_layout)
+        self._create_size_parameter("top_radius", "Top Radius:", size_layout)
         self._create_size_parameter("length", "Length:", size_layout)
         
         self.size_group.setLayout(size_layout)
@@ -96,32 +100,44 @@ class PropertyEditorWidget(QWidget):
         
         # Translation Group
         self.translation_group = QGroupBox("Translation")
-        translation_layout = QFormLayout()
-        translation_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        translation_layout = QHBoxLayout()
+        translation_layout.setSpacing(5)
         
         self.trans_x = self._create_coordinate_spinbox()
         self.trans_y = self._create_coordinate_spinbox()
         self.trans_z = self._create_coordinate_spinbox()
         
-        translation_layout.addRow("X:", self.trans_x)
-        translation_layout.addRow("Y:", self.trans_y)
-        translation_layout.addRow("Z:", self.trans_z)
+        translation_layout.addWidget(QLabel("X:"))
+        translation_layout.addWidget(self.trans_x)
+        translation_layout.addSpacing(10)
+        translation_layout.addWidget(QLabel("Y:"))
+        translation_layout.addWidget(self.trans_y)
+        translation_layout.addSpacing(10)
+        translation_layout.addWidget(QLabel("Z:"))
+        translation_layout.addWidget(self.trans_z)
+        translation_layout.addStretch()
         
         self.translation_group.setLayout(translation_layout)
         scroll_layout.addWidget(self.translation_group)
         
         # Rotation Group
         self.rotation_group = QGroupBox("Rotation")
-        rotation_layout = QFormLayout()
-        rotation_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+        rotation_layout = QHBoxLayout()
+        rotation_layout.setSpacing(5)
         
         self.rot_x = self._create_angle_spinbox()
         self.rot_y = self._create_angle_spinbox()
         self.rot_z = self._create_angle_spinbox()
         
-        rotation_layout.addRow("X (deg):", self.rot_x)
-        rotation_layout.addRow("Y (deg):", self.rot_y)
-        rotation_layout.addRow("Z (deg):", self.rot_z)
+        rotation_layout.addWidget(QLabel("X:"))
+        rotation_layout.addWidget(self.rot_x)
+        rotation_layout.addSpacing(10)
+        rotation_layout.addWidget(QLabel("Y:"))
+        rotation_layout.addWidget(self.rot_y)
+        rotation_layout.addSpacing(10)
+        rotation_layout.addWidget(QLabel("Z:"))
+        rotation_layout.addWidget(self.rot_z)
+        rotation_layout.addStretch()
         
         self.rotation_group.setLayout(rotation_layout)
         scroll_layout.addWidget(self.rotation_group)
@@ -171,6 +187,7 @@ class PropertyEditorWidget(QWidget):
         self,
         shape_id: str,
         shape_type: str,
+        shape_name: str,
         properties: Optional[Dict[str, Any]] = None
     ):
         """
@@ -185,7 +202,7 @@ class PropertyEditorWidget(QWidget):
         self._current_shape_type = shape_type
         
         # Update UI
-        self.shape_info_label.setText(f"Editing: {shape_type} ({shape_id})")
+        self.shape_info_label.setText(f"Editing: {shape_name}")
         
         # Load properties into UI
         self._load_properties(properties or {})
@@ -243,7 +260,7 @@ class PropertyEditorWidget(QWidget):
             "cube": ["width"],
             "sphere": ["radius"],
             "cylinder": ["radius", "height"],
-            "cone": ["radius", "height"],
+            "cone": ["base_radius", "top_radius", "height"],
             "torus": ["radius", "length"],  # radius and tube_radius
             "union": [],  # No size parameters for boolean operations
             "subtraction": [],  # No size parameters for boolean operations

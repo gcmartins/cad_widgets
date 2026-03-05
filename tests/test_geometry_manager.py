@@ -119,7 +119,8 @@ def test_create_cylinder_shape(geometry_manager, qapp):
 def test_create_cone_shape(geometry_manager, qapp):
     """Test creating a cone shape."""
     properties = ConeProperties(
-        radius=20.0,
+        base_radius=20.0,
+        top_radius=8.0,
         height=40.0,
         translation=Translation(x=0.0, y=0.0, z=0.0),
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
@@ -418,12 +419,14 @@ def test_create_properties_for_type_cone():
     """Test creating ConeProperties using factory method."""
     properties = GeometryManager.create_properties_for_type(
         ShapeType.CONE,
-        radius=25.0,
+        base_radius=25.0,
+        top_radius=10.0,
         height=70.0
     )
     
     assert isinstance(properties, ConeProperties)
-    assert properties.radius == 25.0
+    assert properties.base_radius == 25.0
+    assert properties.top_radius == 10.0
     assert properties.height == 70.0
 
 
