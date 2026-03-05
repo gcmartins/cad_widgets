@@ -37,6 +37,10 @@ class GeometryTreeWidget(QWidget):
         shape_creation_requested(ShapeType): Emitted when user requests to create a new shape
         shapes_union_requested(list): Emitted when user requests to union selected shapes (list of shape_ids)
         shapes_subtract_requested(list): Emitted when user requests to subtract shapes (list of shape_ids)
+        export_step_requested(str): Emitted when user requests to export shape as STEP (shape_id)
+        export_iges_requested(str): Emitted when user requests to export shape as IGES (shape_id)
+        import_step_requested(): Emitted when user requests to import STEP file
+        import_iges_requested(): Emitted when user requests to import IGES file
     """
 
     # Qt Signals
@@ -47,6 +51,10 @@ class GeometryTreeWidget(QWidget):
     shape_creation_requested = Signal(object)  # ShapeType
     shapes_union_requested = Signal(list)  # List of shape_ids
     shapes_subtract_requested = Signal(list)  # List of shape_ids
+    export_step_requested = Signal(str)  # shape_id
+    export_iges_requested = Signal(str)  # shape_id
+    import_step_requested = Signal()
+    import_iges_requested = Signal()
 
     def __init__(self, parent=None):
         """Initialize the geometry tree widget."""
@@ -321,6 +329,32 @@ class GeometryTreeWidget(QWidget):
         torus_action = QAction("Torus", self)
         torus_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.TORUS))
         create_menu.addAction(torus_action)
+        
+        # Add separator before import/export
+        menu.addSeparator()
+        
+        # Add import/export menu for single shape selection
+        if len(selected_shape_ids) == 1:
+            export_menu = menu.addMenu("Export Shape")
+            
+            export_step_action = QAction("Export as STEP...", self)
+            export_step_action.triggered.connect(lambda: self.export_step_requested.emit(selected_shape_ids[0]))
+            export_menu.addAction(export_step_action)
+            
+            export_iges_action = QAction("Export as IGES...", self)
+            export_iges_action.triggered.connect(lambda: self.export_iges_requested.emit(selected_shape_ids[0]))
+            export_menu.addAction(export_iges_action)
+        
+        # Add import menu (always available)
+        import_menu = menu.addMenu("Import Geometry")
+        
+        import_step_action = QAction("Import STEP...", self)
+        import_step_action.triggered.connect(lambda: self.import_step_requested.emit())
+        import_menu.addAction(import_step_action)
+        
+        import_iges_action = QAction("Import IGES...", self)
+        import_iges_action.triggered.connect(lambda: self.import_iges_requested.emit())
+        import_menu.addAction(import_iges_action)
         
         # Show the menu at the requested position
         menu.exec_(self.tree.viewport().mapToGlobal(position))

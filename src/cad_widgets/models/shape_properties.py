@@ -261,3 +261,23 @@ class TorusProperties(ShapeProperties):
             "Length": f"{self.length:.2f}",
         })
         return formatted
+
+@dataclass
+class ImportedProperties(ShapeProperties):
+    """Properties for imported shapes (STEP, IGES, etc.).
+    
+    Imported shapes have no editable size parameters,
+    only translation and rotation transformations.
+    """
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return super().to_dict()
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ImportedProperties":
+        """Create from dictionary."""
+        return cls(
+            translation=Translation.from_dict(data.get("translation", {})),
+            rotation=Rotation.from_dict(data.get("rotation", {})),
+        )

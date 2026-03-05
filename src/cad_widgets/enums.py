@@ -51,3 +51,4 @@ class ShapeType(StrEnum):
     TORUS = "torus"
     UNION = "union"
     SUBTRACTION = "subtraction"
+    IMPORTED = "imported"

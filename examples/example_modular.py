@@ -16,6 +16,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSplitter,
     QSizePolicy,
+    QFileDialog,
+    QMessageBox,
 )
 from PySide6.QtCore import Qt
 
@@ -31,11 +33,13 @@ from cad_widgets import (
     SelectionMode,
     ShapeType,
     GeometryManager,
+    GeometryService,
     BoxProperties,
     SphereProperties,
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    ImportedProperties,
     Translation,
     Rotation,
 )
@@ -165,6 +169,18 @@ class CADViewerWindow(QMainWindow):
         )
         self.geometry_tree.shapes_subtract_requested.connect(
             self._on_shapes_subtract_requested
+        )
+        self.geometry_tree.export_step_requested.connect(
+            self._on_export_step_requested
+        )
+        self.geometry_tree.export_iges_requested.connect(
+            self._on_export_iges_requested
+        )
+        self.geometry_tree.import_step_requested.connect(
+            self._on_import_step_requested
+        )
+        self.geometry_tree.import_iges_requested.connect(
+            self._on_import_iges_requested
         )
 
         # Connect property editor signals
@@ -297,6 +313,138 @@ class CADViewerWindow(QMainWindow):
             self.property_editor.clear_shape()
         else:
             print("Subtract operation failed")
+
+    def _on_export_step_requested(self, shape_id: str):
+        """
+        Handle STEP export request for a shape.
+        
+        Args:
+            shape_id: ID of the shape to export
+        """
+        managed_shape = self.geometry_manager.get_shape(shape_id)
+        if not managed_shape:
+            QMessageBox.warning(self, "Export Error", "Shape not found")
+            return
+        
+        # Show file dialog
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export STEP File",
+            f"{managed_shape.name}.step",
+            "STEP Files (*.step *.stp);;All Files (*)"
+        )
+        
+        if filename:
+            # Ensure file has extension
+            if not filename.lower().endswith(('.step', '.stp')):
+                filename += '.step'
+            
+            # Export using GeometryService
+            geo_service = GeometryService()
+            success = geo_service.export_step(managed_shape.shape, filename)
+            
+            if success:
+                QMessageBox.information(self, "Export Success", f"Shape exported to {filename}")
+            else:
+                QMessageBox.critical(self, "Export Error", f"Failed to export shape to {filename}")
+
+    def _on_export_iges_requested(self, shape_id: str):
+        """
+        Handle IGES export request for a shape.
+        
+        Args:
+            shape_id: ID of the shape to export
+        """
+        managed_shape = self.geometry_manager.get_shape(shape_id)
+        if not managed_shape:
+            QMessageBox.warning(self, "Export Error", "Shape not found")
+            return
+        
+        # Show file dialog
+        filename, _ = QFileDialog.getSaveFileName(
+            self,
+            "Export IGES File",
+            f"{managed_shape.name}.iges",
+            "IGES Files (*.iges *.igs);;All Files (*)"
+        )
+        
+        if filename:
+            # Ensure file has extension
+            if not filename.lower().endswith(('.iges', '.igs')):
+                filename += '.iges'
+            
+            # Export using GeometryService
+            geo_service = GeometryService()
+            success = geo_service.export_iges(managed_shape.shape, filename)
+            
+            if success:
+                QMessageBox.information(self, "Export Success", f"Shape exported to {filename}")
+            else:
+                QMessageBox.critical(self, "Export Error", f"Failed to export shape to {filename}")
+
+    def _on_import_step_requested(self):
+        """Handle STEP import request."""
+        # Show file dialog
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import STEP File",
+            "",
+            "STEP Files (*.step *.stp);;All Files (*)"
+        )
+        
+        if filename:
+            # Import using GeometryService
+            geo_service = GeometryService()
+            shape = geo_service.import_step(filename)
+            
+            if shape:
+                # Extract filename without extension for shape name                
+                base_name = os.path.splitext(os.path.basename(filename))[0]
+                
+                # Import shape using the new import_shape method
+                self.geometry_manager.import_shape(
+                    shape=shape,
+                    name=f"Imported: {base_name}",
+                    color=(0.6, 0.6, 0.7),
+                    properties=ImportedProperties()
+                )
+                
+                self.viewer.fit_all()
+                QMessageBox.information(self, "Import Success", f"Shape imported from {filename}")
+            else:
+                QMessageBox.critical(self, "Import Error", f"Failed to import shape from {filename}")
+
+    def _on_import_iges_requested(self):
+        """Handle IGES import request."""
+        # Show file dialog
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import IGES File",
+            "",
+            "IGES Files (*.iges *.igs);;All Files (*)"
+        )
+        
+        if filename:
+            # Import using GeometryService
+            geo_service = GeometryService()
+            shape = geo_service.import_iges(filename)
+            
+            if shape:
+                # Extract filename without extension for shape name
+                base_name = os.path.splitext(os.path.basename(filename))[0]
+                
+                # Import shape using the new import_shape method
+                self.geometry_manager.import_shape(
+                    shape=shape,
+                    name=f"Imported: {base_name}",
+                    color=(0.6, 0.6, 0.7),
+                    properties=ImportedProperties()
+                )
+                
+                self.viewer.fit_all()
+                QMessageBox.information(self, "Import Success", f"Shape imported from {filename}")
+            else:
+                QMessageBox.critical(self, "Import Error", f"Failed to import shape from {filename}")
 
     def load_example_shapes(self):
         """Load example 3D shapes into the viewer."""

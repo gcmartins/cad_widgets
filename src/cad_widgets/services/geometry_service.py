@@ -16,6 +16,10 @@ from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir, gp_Trsf, gp_Vec
 from OCP.TopoDS import TopoDS_Shape
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut, BRepAlgoAPI_Common
+from OCP.STEPControl import STEPControl_Writer, STEPControl_Reader, STEPControl_AsIs
+from OCP.IGESControl import IGESControl_Writer, IGESControl_Reader
+from OCP.IFSelect import IFSelect_ReturnStatus
+from OCP.Interface import Interface_Static
 
 
 class GeometryService:
@@ -284,3 +288,123 @@ class GeometryService:
         except Exception as e:
             print(f"Error intersecting shapes: {e}")
         return None
+
+    @staticmethod
+    def export_step(shape: TopoDS_Shape, filename: str) -> bool:
+        """Export a shape to a STEP file.
+        
+        Args:
+            shape: Shape to export
+            filename: Path to the output STEP file
+            
+        Returns:
+            True if export was successful, False otherwise
+        """
+        try:
+            # Create STEP writer
+            writer = STEPControl_Writer()
+            
+            # Set transfer mode
+            Interface_Static.SetCVal_s("write.step.schema", "AP203")
+            
+            # Transfer shape
+            writer.Transfer(shape, STEPControl_AsIs)
+            
+            # Write to file
+            status = writer.Write(filename)
+            
+            return status == IFSelect_ReturnStatus.IFSelect_RetDone
+        except Exception as e:
+            print(f"Error exporting STEP file: {e}")
+            return False
+
+    @staticmethod
+    def import_step(filename: str) -> Optional[TopoDS_Shape]:
+        """Import a shape from a STEP file.
+        
+        Args:
+            filename: Path to the STEP file to import
+            
+        Returns:
+            Imported shape or None if import failed
+        """
+        try:
+            # Create STEP reader
+            reader = STEPControl_Reader()
+            
+            # Read file
+            status = reader.ReadFile(filename)
+            
+            if status != IFSelect_ReturnStatus.IFSelect_RetDone:
+                print(f"Error reading STEP file: {filename}")
+                return None
+            
+            # Transfer roots
+            reader.TransferRoots()
+            
+            # Get shape
+            shape = reader.OneShape()
+            
+            return shape if not shape.IsNull() else None
+        except Exception as e:
+            print(f"Error importing STEP file: {e}")
+            return None
+
+    @staticmethod
+    def export_iges(shape: TopoDS_Shape, filename: str) -> bool:
+        """Export a shape to an IGES file.
+        
+        Args:
+            shape: Shape to export
+            filename: Path to the output IGES file
+            
+        Returns:
+            True if export was successful, False otherwise
+        """
+        try:
+            # Create IGES writer
+            writer = IGESControl_Writer()
+            
+            # Add shape
+            writer.AddShape(shape)
+            
+            # Write to file
+            writer.ComputeModel()
+            success = writer.Write(filename)
+            
+            return success
+        except Exception as e:
+            print(f"Error exporting IGES file: {e}")
+            return False
+
+    @staticmethod
+    def import_iges(filename: str) -> Optional[TopoDS_Shape]:
+        """Import a shape from an IGES file.
+        
+        Args:
+            filename: Path to the IGES file to import
+            
+        Returns:
+            Imported shape or None if import failed
+        """
+        try:
+            # Create IGES reader
+            reader = IGESControl_Reader()
+            
+            # Read file
+            status = reader.ReadFile(filename)
+            
+            if status != IFSelect_ReturnStatus.IFSelect_RetDone:
+                print(f"Error reading IGES file: {filename}")
+                return None
+            
+            # Transfer roots
+            reader.TransferRoots()
+            
+            # Get shape
+            shape = reader.OneShape()
+            
+            return shape if not shape.IsNull() else None
+        except Exception as e:
+            print(f"Error importing IGES file: {e}")
+            return None

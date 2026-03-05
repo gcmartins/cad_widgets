@@ -18,6 +18,7 @@ from ..models.shape_properties import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    ImportedProperties,
     Translation,
     Rotation
 )
@@ -105,6 +106,47 @@ class GeometryManager(QObject):
         
         return managed_shape
 
+    def import_shape(
+        self,
+        shape: Any,
+        name: str,
+        color: Tuple[float, float, float],
+        properties: Optional[ImportedProperties] = None
+    ) -> Any:
+        """
+        Import an existing shape (from STEP, IGES, etc.).
+        
+        Args:
+            shape: TopoDS_Shape to import
+            name: Display name
+            color: RGB color tuple
+            properties: Optional ImportedProperties (defaults to new instance)
+            
+        Returns:
+            ManagedShape instance
+        """
+        if properties is None:
+            properties = ImportedProperties()
+        
+        # Apply transformations if any
+        transformed_shape = self._apply_transformations(shape, properties)
+        
+        shape_id = self._new_shape_id(ShapeType.IMPORTED)
+        managed_shape = ManagedShape(
+            shape_id=shape_id,
+            shape=transformed_shape,
+            shape_type=ShapeType.IMPORTED,
+            name=name,
+            color=color,
+            properties=properties
+        )
+        self._shapes[shape_id] = managed_shape
+        
+        # Emit signal for observers
+        self.shape_created.emit(shape_id, managed_shape)
+        
+        return managed_shape
+
     def update_shape(
         self,
         shape_id: str,
@@ -125,10 +167,10 @@ class GeometryManager(QObject):
         
         managed_shape = self._shapes[shape_id]
         
-        # For UNION and SUBTRACTION shapes, we need to:
+        # For UNION, SUBTRACTION, and IMPORTED shapes, we need to:
         # 1. Unapply the current transformations to get back to the base shape
         # 2. Apply the new transformations
-        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION):
+        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION, ShapeType.IMPORTED):
             # Get the base shape by unapplying current transformations
             base_shape = managed_shape.shape
             
@@ -405,6 +447,10 @@ class GeometryManager(QObject):
                 properties.radius,
                 properties.length
             )
+        elif shape_type == ShapeType.IMPORTED and isinstance(properties, ImportedProperties):
+            # For imported shapes, no base shape is created
+            # The shape is already provided externally
+            return None
         else:
             return None
 
@@ -438,6 +484,8 @@ class GeometryManager(QObject):
             return ConeProperties(**kwargs)
         elif shape_type == ShapeType.TORUS:
             return TorusProperties(**kwargs)
+        elif shape_type == ShapeType.IMPORTED:
+            return ImportedProperties(**kwargs)
         else:
             return ShapeProperties(**kwargs)
 
@@ -466,5 +514,7 @@ class GeometryManager(QObject):
             return ConeProperties.from_dict(data)
         elif shape_type == ShapeType.TORUS:
             return TorusProperties.from_dict(data)
+        elif shape_type == ShapeType.IMPORTED:
+            return ImportedProperties.from_dict(data)
         else:
             return ShapeProperties.from_dict(data)

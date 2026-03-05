@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal
 
 from cad_widgets.managers.geometry_manager import ManagedShape
+from cad_widgets.enums import ShapeType
 
 
 class PropertyEditorWidget(QWidget):
@@ -43,7 +44,7 @@ class PropertyEditorWidget(QWidget):
         
         # Current shape tracking
         self._current_shape_id: Optional[str] = None
-        self._current_shape_type: Optional[str] = None
+        self._current_shape_type: Optional[ShapeType] = None
         self._loading: bool = False  # Flag to prevent emitting signals during loading
         
         # Setup UI
@@ -186,7 +187,7 @@ class PropertyEditorWidget(QWidget):
     def set_shape(
         self,
         shape_id: str,
-        shape_type: str,
+        shape_type: ShapeType,
         shape_name: str,
         properties: Optional[Dict[str, Any]] = None
     ):
@@ -250,24 +251,22 @@ class PropertyEditorWidget(QWidget):
         # Re-enable signal emission
         self._loading = False
             
-    def _configure_size_parameters(self, shape_type: str):
+    def _configure_size_parameters(self, shape_type: ShapeType):
         """Show/hide size parameters based on shape type."""
-        shape_type_lower = shape_type.lower()
-        
         # Define which parameters are relevant for each shape type
         parameter_visibility = {
-            "box": ["width", "height", "depth"],
-            "cube": ["width"],
-            "sphere": ["radius"],
-            "cylinder": ["radius", "height"],
-            "cone": ["base_radius", "top_radius", "height"],
-            "torus": ["radius", "length"],  # radius and tube_radius
-            "union": [],  # No size parameters for boolean operations
-            "subtraction": [],  # No size parameters for boolean operations
+            ShapeType.BOX: ["width", "height", "depth"],
+            ShapeType.SPHERE: ["radius"],
+            ShapeType.CYLINDER: ["radius", "height"],
+            ShapeType.CONE: ["base_radius", "top_radius", "height"],
+            ShapeType.TORUS: ["radius", "length"],
+            ShapeType.UNION: [],  # No size parameters for boolean operations
+            ShapeType.SUBTRACTION: [],  # No size parameters for boolean operations
+            ShapeType.IMPORTED: [],  # No size parameters for imported shapes
         }
         
         # Get relevant parameters for this shape type
-        relevant_params = parameter_visibility.get(shape_type_lower, [])
+        relevant_params = parameter_visibility.get(shape_type, [])
         
         # Show/hide parameters
         size_layout = self.size_group.layout()
