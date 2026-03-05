@@ -59,9 +59,13 @@ UI components built on PySide6 that provide visual interfaces and user interacti
 
 Business logic services that handle specific domains without UI concerns.
 
-- **GeometryService**: Shape creation and geometric operations
+- **GeometryService**: Shape creation, geometric operations, and file I/O
 - **ViewService**: Camera, display, and rendering management
 - **SelectionService**: Entity selection and highlighting
+
+**File Format Support**:
+- **STEP** (`.step`, `.stp`) - ISO 10303 standard for CAD data exchange
+- **IGES** (`.iges`, `.igs`) - Initial Graphics Exchange Specification
 
 ### 3. Manager Layer (`managers/`)
 
@@ -190,6 +194,10 @@ Tree view widget for managing geometry in a hierarchical structure.
 - `shape_creation_requested(ShapeType)` - New shape requested
 - `shapes_union_requested(list)` - Boolean union requested
 - `shapes_subtract_requested(list)` - Boolean subtraction requested
+- `export_step_requested(str)` - Export shape to STEP file
+- `export_iges_requested(str)` - Export shape to IGES file
+- `import_step_requested()` - Import STEP file
+- `import_iges_requested()` - Import IGES file
 
 **Usage**:
 ```python
@@ -253,6 +261,10 @@ Service for creating and manipulating 3D shapes using OpenCascade.
 - `create_union(shape1, shape2)` - Boolean union
 - `create_subtraction(shape1, shape2)` - Boolean subtraction
 - `create_intersection(shape1, shape2)` - Boolean intersection
+- `export_step(shape, filename)` - Export shape to STEP file
+- `import_step(filename)` - Import shape from STEP file
+- `export_iges(shape, filename)` - Export shape to IGES file
+- `import_iges(filename)` - Import shape from IGES file
 
 **Usage**:
 ```python
@@ -272,6 +284,10 @@ cylinder = geo.create_cylinder(20, 60, position=(0, 0, 0), direction=(1, 0, 0))
 
 # Boolean operations
 union = geo.create_union(box, sphere)
+
+# Import/Export
+GeometryService.export_step(box, "box.step")
+imported = GeometryService.import_step("model.step")
 ```
 
 #### ViewService
@@ -401,6 +417,7 @@ Data classes representing shape properties.
 - `CylinderProperties` - Cylinder dimensions (radius, height)
 - `ConeProperties` - Cone dimensions (radius1, radius2, height)
 - `TorusProperties` - Torus dimensions (major_radius, minor_radius)
+- `ImportedProperties` - Properties for imported shapes (STEP, IGES)
 
 **Usage**:
 ```python
@@ -593,6 +610,10 @@ Core 3D viewer widget methods:
 - `shape_creation_requested(ShapeType)` - New shape creation requested
 - `shapes_union_requested(list)` - Boolean union requested
 - `shapes_subtract_requested(list)` - Boolean subtraction requested
+- `export_step_requested(str)` - Export shape to STEP file
+- `export_iges_requested(str)` - Export shape to IGES file
+- `import_step_requested()` - Import STEP file
+- `import_iges_requested()` - Import IGES file
 
 #### PropertyEditorWidget Signals
 
@@ -654,7 +675,7 @@ Available enumeration types:
 - `ProjectionType` - PERSPECTIVE, ORTHOGRAPHIC
 - `DisplayMode` - SHADED, WIREFRAME, BOTH
 - `SelectionMode` - VOLUME, SURFACE, EDGE, VERTEX
-- `ShapeType` - BOX, SPHERE, CYLINDER, CONE, TORUS, UNION, SUBTRACTION
+- `ShapeType` - BOX, SPHERE, CYLINDER, CONE, TORUS, UNION, SUBTRACTION, IMPORTED
 
 ## Extension Points
 
@@ -1076,6 +1097,103 @@ This example demonstrates:
 - **Complete UI**: All widgets working together
 - **Event handling**: Comprehensive signal connection
 
+## Import/Export Operations
+
+CAD Widgets supports importing and exporting standard CAD file formats.
+
+### Supported Formats
+
+- **STEP** (`.step`, `.stp`) - ISO 10303 standard, widely used for CAD data exchange
+- **IGES** (`.iges`, `.igs`) - Initial Graphics Exchange Specification, legacy format
+
+### Exporting Shapes
+
+Use `GeometryService` static methods to export shapes:
+
+```python
+from cad_widgets import GeometryService
+
+geo = GeometryService()
+
+# Create a shape
+box = geo.create_box(100, 50, 75)
+
+# Export to STEP format
+success = GeometryService.export_step(box, "output.step")
+if success:
+    print("Successfully exported to STEP")
+
+# Export to IGES format
+success = GeometryService.export_iges(box, "output.iges")
+if success:
+    print("Successfully exported to IGES")
+```
+
+### Importing Shapes
+
+Import shapes and add them to your scene:
+
+```python
+from cad_widgets import GeometryService, GeometryManager, ImportedProperties
+
+# Import from file
+imported_shape = GeometryService.import_step("model.step")
+
+if imported_shape:
+    # Create manager to handle the imported shape
+    manager = GeometryManager()
+    
+    # Import into manager with properties
+    properties = ImportedProperties()
+    properties.translation = Translation(x=50, y=0, z=0)
+    
+    managed = manager.import_shape(
+        shape=imported_shape,
+        name="Imported Model",
+        color=(0.5, 0.5, 0.8),
+        properties=properties
+    )
+    
+    # Display in viewer
+    viewer.display_shape(managed.shape, color=managed.color)
+```
+
+### UI Integration
+
+The `GeometryTreeWidget` provides built-in context menu actions for import/export:
+
+```python
+# Connect import/export signals
+tree.export_step_requested.connect(handle_export_step)
+tree.import_step_requested.connect(handle_import_step)
+
+def handle_export_step(shape_id: str):
+    """Handle STEP export from context menu."""
+    managed = geometry_manager.get_shape(shape_id)
+    if managed:
+        filename = get_save_filename(f"{managed.name}.step")
+        if filename:
+            GeometryService.export_step(managed.shape, filename)
+
+def handle_import_step():
+    """Handle STEP import from context menu."""
+    filename = get_open_filename()
+    if filename:
+        shape = GeometryService.import_step(filename)
+        if shape:
+            geometry_manager.import_shape(
+                shape, "Imported", (0.7, 0.7, 0.7)
+            )
+```
+
+### Best Practices
+
+1. **Error Handling**: Import/export operations return `None` or `False` on failure
+2. **File Validation**: Check file existence before importing
+3. **Format Selection**: STEP is recommended for modern CAD workflows
+4. **Transformation**: Use `ImportedProperties` to position imported shapes
+5. **Batch Operations**: Export multiple shapes by creating assemblies first
+
 ## Performance Considerations
 
 ### Rendering
@@ -1106,7 +1224,7 @@ Potential areas for extension:
 - **Animation Timeline**: Animate shape transformations
 
 ### File Operations
-- **Import/Export Service**: STEP, IGES, STL, OBJ file I/O
+- **Import/Export Service**: ✅ STEP, IGES implemented; STL, OBJ planned
 - **Project Serialization**: Save/load complete projects
 - **Format Converters**: Between different CAD formats
 

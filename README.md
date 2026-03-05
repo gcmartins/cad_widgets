@@ -15,6 +15,7 @@ A Python library for building 3D CAD viewers with PySide6 and OpenCascade (OCP).
 - ✂️ **Boolean Operations** - Union, subtraction, and intersection operations
 - 🎯 **Advanced Selection** - Volume, surface, edge, and vertex selection modes
 - 🔧 **Shape Creation** - Clean API for boxes, spheres, cylinders, cones, and tori
+- 📁 **Import/Export** - STEP and IGES file format support
 - 🧪 **Well Tested** - Comprehensive test suite with >90% coverage
 - 📚 **Documented** - Extensive documentation and examples
 - 🖥️ **Cross-Platform** - Works on Linux (X11), Windows, and macOS
@@ -49,7 +50,7 @@ viewer.resize(800, 600)
 
 geo = GeometryService()
 box = geo.create_box(100, 100, 100)
-viewer.display_shape(box, color=(0.8, 0.2, 0.2))
+viewer.display_shape(box, 'box_id', color=(0.8, 0.2, 0.2))
 viewer.fit_all()
 
 viewer.show()
@@ -113,6 +114,30 @@ Components communicate through Qt signals for loose coupling and reusability. Se
 ## API Reference
 
 For a complete API reference including all widget methods, signals, service methods, and enums, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#api-reference).
+
+## Key Features
+
+### Import/Export
+
+Support for standard CAD file formats:
+- **STEP** (`.step`, `.stp`) - ISO 10303 standard
+- **IGES** (`.iges`, `.igs`) - Initial Graphics Exchange Specification
+
+```python
+from cad_widgets import GeometryService, GeometryManager
+
+# Export shapes
+geo = GeometryService()
+box = geo.create_box(100, 100, 100)
+GeometryService.export_step(box, "output.step")
+GeometryService.export_iges(box, "output.iges")
+
+# Import shapes
+imported_shape = GeometryService.import_step("input.step")
+if imported_shape:
+    manager = GeometryManager()
+    manager.import_shape(imported_shape, "Imported Part", (0.5, 0.5, 0.8))
+```
 
 ## Dependencies
 
