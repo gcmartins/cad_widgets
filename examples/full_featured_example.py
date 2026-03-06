@@ -53,68 +53,17 @@ class CADViewerWindow(QMainWindow):
         self.setWindowTitle("OCP PySide6 3D Viewer - Modular Example")
         self.setGeometry(100, 100, 1400, 700)
 
-        # Create geometry manager
         self.geometry_manager = GeometryManager()
 
-        # Create central widget
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-
-        # Create splitter for left panel and main viewer area
         splitter = QSplitter(Qt.Horizontal)
-
-        # Create left panel with geometry tree and property editor
-        left_panel = QWidget()
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Add geometry tree widget
-        self.geometry_tree = GeometryTreeWidget()
-        left_layout.addWidget(self.geometry_tree, stretch=1)
-
-        # Add property editor widget
-        self.property_editor = PropertyEditorWidget()
-        left_layout.addWidget(self.property_editor, stretch=1)
-
-        splitter.addWidget(left_panel)
-
-        # Create right panel with toolbars and viewer stacked vertically
-        right_panel = QWidget()
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Create horizontal layout for toolbars side by side
-        toolbars_layout = QHBoxLayout()
-        
-        # Create the view toolbar (horizontal orientation)
-        self.view_toolbar = ViewToolbar(orientation="horizontal", show_projection_type=False)
-        self.view_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        self.view_toolbar.setMaximumHeight(self.view_toolbar.sizeHint().height())
-        toolbars_layout.addWidget(self.view_toolbar)
-
-        # Create the selection toolbar (horizontal orientation)
-        self.selection_toolbar = SelectionToolbar(orientation="horizontal")
-        self.selection_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
-        self.selection_toolbar.setMaximumHeight(self.selection_toolbar.sizeHint().height())
-        toolbars_layout.addWidget(self.selection_toolbar)
-        
-        toolbars_layout.addStretch()  # Push toolbars to the left
-        
-        right_layout.addLayout(toolbars_layout)
-
-        # Create the OCP widget below toolbars
-        self.viewer = OCPWidget()
-        right_layout.addWidget(self.viewer)
-
-        splitter.addWidget(right_panel)
-
-        # Set main splitter sizes (left panel width, right panel width)
+        splitter.addWidget(self._create_left_panel())
+        splitter.addWidget(self._create_right_panel())
         splitter.setSizes([350, 1050])
 
-        main_layout.addWidget(splitter)
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        QVBoxLayout(central_widget).addWidget(splitter)
 
-        # Connect toolbar signals to viewer
         self._connect_signals()
 
         # Set initial display mode to match toolbar state
@@ -122,6 +71,43 @@ class CADViewerWindow(QMainWindow):
 
         # Load example shapes automatically
         self.load_example_shapes()
+
+    def _create_left_panel(self) -> QWidget:
+        """Build the left panel containing the geometry tree and property editor."""
+        self.geometry_tree = GeometryTreeWidget()
+        self.property_editor = PropertyEditorWidget()
+
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.geometry_tree, stretch=1)
+        layout.addWidget(self.property_editor, stretch=1)
+        return panel
+
+    def _create_right_panel(self) -> QWidget:
+        """Build the right panel containing the toolbars and the 3D viewer."""
+        self.view_toolbar = ViewToolbar(orientation="horizontal", show_projection_type=False)
+        self.view_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        self.view_toolbar.setMaximumHeight(self.view_toolbar.sizeHint().height())
+
+        self.selection_toolbar = SelectionToolbar(orientation="horizontal")
+        self.selection_toolbar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
+        self.selection_toolbar.setMaximumHeight(self.selection_toolbar.sizeHint().height())
+
+        toolbars_layout = QHBoxLayout()
+        toolbars_layout.addWidget(self.view_toolbar)
+        toolbars_layout.addWidget(self.selection_toolbar)
+        toolbars_layout.addStretch()
+
+        self.viewer = OCPWidget()
+        self.viewer.set_background_gradient((0.4, 0.4, 0.4), (0.05, 0.05, 0.05))
+
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(toolbars_layout)
+        layout.addWidget(self.viewer)
+        return panel
 
     def _connect_signals(self):
         """Connect toolbar signals to viewer methods."""

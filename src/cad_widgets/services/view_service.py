@@ -5,7 +5,7 @@ Handles all view-related operations and geometry display for OCP viewer
 
 from typing import Optional, Tuple, Dict
 from OCP.V3d import V3d_View, V3d_Viewer, V3d_TypeOfVisualization
-from OCP.Aspect import Aspect_TypeOfTriedronPosition
+from OCP.Aspect import Aspect_GradientFillMethod, Aspect_TypeOfTriedronPosition
 from OCP.Quantity import Quantity_Color, Quantity_NOC_WHITE, Quantity_TOC_RGB
 from OCP.Graphic3d import Graphic3d_Camera
 from OCP.AIS import AIS_InteractiveContext, AIS_Shape
@@ -56,14 +56,24 @@ class ViewService:
         self._shapes: Dict[str, ShapeInfo] = {}  # Shape registry
         self._global_transparency: float = 0.0  # Track global transparency setting
         self._current_display_mode: DisplayMode = DisplayMode.SHADED  # Track current display mode
+        self._background_color: tuple[float, float, float] = (1.0, 1.0, 1.0)  # Default white
+        self._background_gradient: tuple | None = None  # (color1, color2, method) or None
 
     def setup_initial_view(self):
         """Setup initial view parameters."""
         try:
-            # Set white background
-            self._view.SetBackgroundColor(
-                Quantity_Color(1.0, 1.0, 1.0, Quantity_TOC_RGB)
-            )
+            if self._background_gradient:
+                color1, color2, method = self._background_gradient
+                self._view.SetBgGradientColors(
+                    Quantity_Color(*color1, Quantity_TOC_RGB),
+                    Quantity_Color(*color2, Quantity_TOC_RGB),
+                    method,
+                    True,
+                )
+            else:
+                self._view.SetBackgroundColor(
+                    Quantity_Color(*self._background_color, Quantity_TOC_RGB)
+                )
 
             # Set up trihedron (axis indicator)
             self._setup_trihedron()
@@ -430,6 +440,47 @@ class ViewService:
                 self._context.Redisplay(ais_shape, True)
         except Exception as e:
             print(f"Error setting shape color: {e}")
+
+    def set_background_color(self, color: tuple[float, float, float]):
+        """
+        Set the background to a solid color, clearing any gradient.
+
+        Args:
+            color: RGB tuple (0.0 - 1.0) e.g. (1.0, 1.0, 1.0) for white.
+        """
+        try:
+            self._background_color = color
+            self._background_gradient = None
+            self._view.SetBackgroundColor(Quantity_Color(*color, Quantity_TOC_RGB))
+            self._view.Redraw()
+        except Exception as e:
+            print(f"Error setting background color: {e}")
+
+    def set_background_gradient(
+        self,
+        color1: tuple[float, float, float],
+        color2: tuple[float, float, float],
+        method: Aspect_GradientFillMethod = Aspect_GradientFillMethod.Aspect_GradientFillMethod_Vertical,
+    ):
+        """
+        Set the background to a two-color gradient.
+
+        Args:
+            color1: First color RGB tuple (0.0 - 1.0), top for vertical gradients.
+            color2: Second color RGB tuple (0.0 - 1.0), bottom for vertical gradients.
+            method: Aspect_GradientFillMethod (Vertical, Horizontal, Diagonal1/2, Corner1-4).
+        """
+        try:
+            self._background_gradient = (color1, color2, method)
+            self._view.SetBgGradientColors(
+                Quantity_Color(*color1, Quantity_TOC_RGB),
+                Quantity_Color(*color2, Quantity_TOC_RGB),
+                method,
+                True,
+            )
+            self._view.Redraw()
+        except Exception as e:
+            print(f"Error setting background gradient: {e}")
 
     def set_global_transparency(self, transparency: float, update: bool = True):
         """

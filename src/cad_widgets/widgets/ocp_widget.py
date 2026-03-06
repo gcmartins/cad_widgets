@@ -60,6 +60,7 @@ class OCPWidget(QWidget):
         # Mouse tracking
         self._last_pos = None
         self._mouse_moved = False  # Track if mouse moved during press
+        self._setup_done = False  # Guard against repeated showEvent calls
 
         # Initialize the viewer
         self._init_viewer()
@@ -67,9 +68,6 @@ class OCPWidget(QWidget):
         # Initialize services
         self._selection_service = SelectionService(self._context)
         self._view_service = ViewService(self._view, self._viewer, self._context)
-
-        # Setup the view after widget is shown
-        QTimer.singleShot(100, self._setup_view)
 
     def _init_viewer(self):
         """Initialize the OpenCascade viewer components."""
@@ -99,6 +97,13 @@ class OCPWidget(QWidget):
 
             traceback.print_exc()
 
+    def showEvent(self, event):
+        """Trigger OCC window setup the first time the widget is shown."""
+        super().showEvent(event)
+        if not self._setup_done:
+            self._setup_done = True
+            QTimer.singleShot(0, self._setup_view)
+
     def _setup_view(self):
         """Setup view parameters after widget is shown."""
         if self._view and self._view_service:
@@ -115,8 +120,17 @@ class OCPWidget(QWidget):
                 # Fit all objects
                 self.fit_all()
 
+                # Defer a final sync so the OCC viewport matches Qt's settled size
+                QTimer.singleShot(0, self._sync_viewport)
+
             except Exception as e:
                 print(f"Error setting up view: {e}")
+
+    def _sync_viewport(self):
+        """Re-sync the OCC viewport after Qt has finished settling the layout."""
+        if self._view_service:
+            self._view_service.must_be_resized()
+            self._view_service.redraw()
 
     def _create_occ_window(self):
         """Create and set the platform-specific OCC window."""
@@ -228,6 +242,36 @@ class OCPWidget(QWidget):
         if self._view_service:
             self._view_service.set_display_mode(mode)
             self.update_display()
+
+    def set_background_color(self, color: tuple[float, float, float]):
+        """
+        Set the background to a solid color, clearing any gradient.
+
+        Args:
+            color: RGB tuple (0.0 - 1.0) e.g. (1.0, 1.0, 1.0) for white.
+        """
+        if self._view_service:
+            self._view_service.set_background_color(color)
+
+    def set_background_gradient(
+        self,
+        color1: tuple[float, float, float],
+        color2: tuple[float, float, float],
+        method=None,
+    ):
+        """
+        Set the background to a two-color gradient.
+
+        Args:
+            color1: First color RGB tuple (0.0 - 1.0), top for vertical gradients.
+            color2: Second color RGB tuple (0.0 - 1.0), bottom for vertical gradients.
+            method: Aspect_GradientFillMethod constant, or None for vertical (default).
+        """
+        if self._view_service:
+            from OCP.Aspect import Aspect_GradientFillMethod
+            if method is None:
+                method = Aspect_GradientFillMethod.Aspect_GradientFillMethod_Vertical
+            self._view_service.set_background_gradient(color1, color2, method)
 
     def set_global_transparency(self, transparency: float):
         """
