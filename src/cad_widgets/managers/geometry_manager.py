@@ -550,3 +550,13 @@ class GeometryManager(QObject):
             return ImportedProperties.from_dict(data)
         else:
             return ShapeProperties.from_dict(data)
+        
+    def export_shapes_to_iges(self, filename: str) -> bool:
+        shape_ids = self.get_all_shape_ids()
+        shapes = [self.get_shape(sid).shape for sid in shape_ids]
+        return self._geo_service.export_shapes_to_iges(shapes, filename)
+    
+    def export_shapes_to_step(self, filename: str) -> bool:
+        shape_ids = self.get_all_shape_ids()
+        shapes = [self.get_shape(sid).shape for sid in shape_ids]
+        return self._geo_service.export_shapes_to_step(shapes, filename)

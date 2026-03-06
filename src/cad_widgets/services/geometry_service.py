@@ -396,3 +396,60 @@ class GeometryService:
         except Exception as e:
             print(f"Error exporting IGES file: {e}")
             return False
+        
+    @staticmethod
+    def export_shapes_to_iges(shapes: list[TopoDS_Shape], filename: str) -> bool:
+        """Export multiple shapes to a single IGES file.
+        
+        Args:
+            shapes: List of shapes to export
+            filename: Path to the output IGES file
+            
+        Returns:
+            True if export was successful, False otherwise
+        """
+        try:
+            # Create IGES writer
+            writer = IGESControl_Writer()
+            
+            # Add all shapes
+            for shape in shapes:
+                writer.AddShape(shape)
+            
+            # Write to file
+            writer.ComputeModel()
+            success = writer.Write(filename)
+            
+            return success
+        except Exception as e:
+            print(f"Error exporting IGES file: {e}")
+            return False
+    
+    def export_shapes_to_step(self, shapes: list[TopoDS_Shape], filename: str) -> bool:
+        """Export multiple shapes to a single STEP file.
+        
+        Args:
+            shapes: List of shapes to export
+            filename: Path to the output STEP file
+            
+        Returns:
+            True if export was successful, False otherwise
+        """
+        try:
+            # Create STEP writer
+            writer = STEPControl_Writer()
+            
+            # Set transfer mode
+            Interface_Static.SetCVal_s("write.step.schema", "AP203")
+            
+            # Transfer all shapes
+            for shape in shapes:
+                writer.Transfer(shape, STEPControl_AsIs)
+            
+            # Write to file
+            status = writer.Write(filename)
+            
+            return status == IFSelect_ReturnStatus.IFSelect_RetDone
+        except Exception as e:
+            print(f"Error exporting STEP file: {e}")
+            return False
