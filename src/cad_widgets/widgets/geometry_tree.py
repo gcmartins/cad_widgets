@@ -39,8 +39,7 @@ class GeometryTreeWidget(QWidget):
         shapes_subtract_requested(list): Emitted when user requests to subtract shapes (list of shape_ids)
         export_step_requested(str): Emitted when user requests to export shape as STEP (shape_id)
         export_iges_requested(str): Emitted when user requests to export shape as IGES (shape_id)
-        import_step_requested(): Emitted when user requests to import STEP file
-        import_iges_requested(): Emitted when user requests to import IGES file
+        import_requested(): Emitted when user requests to import a CAD file (STEP or IGES)
     """
 
     # Qt Signals
@@ -53,8 +52,7 @@ class GeometryTreeWidget(QWidget):
     shapes_subtract_requested = Signal(list)  # List of shape_ids
     export_step_requested = Signal(str)  # shape_id
     export_iges_requested = Signal(str)  # shape_id
-    import_step_requested = Signal()
-    import_iges_requested = Signal()
+    import_requested = Signal()  # Unified import signal for STEP/IGES files
 
     def __init__(self, parent=None):
         """Initialize the geometry tree widget."""
@@ -271,92 +269,70 @@ class GeometryTreeWidget(QWidget):
         Args:
             position: Position where the context menu was requested
         """
-        # Create context menu
         menu = QMenu(self)
         
-        # Get selected items
-        selected_items = self.tree.selectedItems()
-        selected_shape_ids = []
-        for item in selected_items:
-            shape_id = item.data(0, Qt.ItemDataRole.UserRole)
-            if shape_id:
-                selected_shape_ids.append(shape_id)
+        # Get selected shape IDs
+        selected_shape_ids = [
+            item.data(0, Qt.ItemDataRole.UserRole)
+            for item in self.tree.selectedItems()
+            if item.data(0, Qt.ItemDataRole.UserRole)
+        ]
         
-        # If there are shapes to delete, add delete option
-        if len(selected_shape_ids) > 0:
-            if len(selected_shape_ids) == 1:
-                delete_label = "Delete Shape"
-            else:
-                delete_label = f"Delete {len(selected_shape_ids)} Shapes"
-            
+        num_selected = len(selected_shape_ids)
+        
+        # Actions when shapes are selected
+        if num_selected > 0:
+            # Delete action
+            delete_label = "Delete Shape" if num_selected == 1 else f"Delete {num_selected} Shapes"
             delete_action = QAction(delete_label, self)
             delete_action.triggered.connect(lambda: self._delete_selected_shapes(selected_shape_ids))
             menu.addAction(delete_action)
             menu.addSeparator()
-        
-        # If multiple shapes are selected, add boolean operations
-        if len(selected_shape_ids) >= 2:
-            union_action = QAction(f"Union ({len(selected_shape_ids)} shapes)", self)
-            union_action.triggered.connect(lambda: self.shapes_union_requested.emit(selected_shape_ids))
-            menu.addAction(union_action)
             
-            subtract_action = QAction(f"Subtract ({len(selected_shape_ids)} shapes)", self)
-            subtract_action.triggered.connect(lambda: self.shapes_subtract_requested.emit(selected_shape_ids))
-            menu.addAction(subtract_action)
+            # Boolean operations (2+ shapes)
+            if num_selected >= 2:
+                union_action = QAction(f"Union ({num_selected} shapes)", self)
+                union_action.triggered.connect(lambda: self.shapes_union_requested.emit(selected_shape_ids))
+                menu.addAction(union_action)
+                
+                subtract_action = QAction(f"Subtract ({num_selected} shapes)", self)
+                subtract_action.triggered.connect(lambda: self.shapes_subtract_requested.emit(selected_shape_ids))
+                menu.addAction(subtract_action)
+                menu.addSeparator()
             
-            menu.addSeparator()
+            # Export menu (single shape only)
+            if num_selected == 1:
+                export_menu = menu.addMenu("Export Shape")
+                
+                export_step_action = QAction("Export as STEP...", self)
+                export_step_action.triggered.connect(lambda: self.export_step_requested.emit(selected_shape_ids[0]))
+                export_menu.addAction(export_step_action)
+                
+                export_iges_action = QAction("Export as IGES...", self)
+                export_iges_action.triggered.connect(lambda: self.export_iges_requested.emit(selected_shape_ids[0]))
+                export_menu.addAction(export_iges_action)
         
-        # Add "Create Shape" submenu
-        create_menu = menu.addMenu("Create Shape")
-        
-        # Add actions for each shape type
-        box_action = QAction("Box", self)
-        box_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.BOX))
-        create_menu.addAction(box_action)
-        
-        sphere_action = QAction("Sphere", self)
-        sphere_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.SPHERE))
-        create_menu.addAction(sphere_action)
-        
-        cylinder_action = QAction("Cylinder", self)
-        cylinder_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.CYLINDER))
-        create_menu.addAction(cylinder_action)
-        
-        cone_action = QAction("Cone", self)
-        cone_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.CONE))
-        create_menu.addAction(cone_action)
-        
-        torus_action = QAction("Torus", self)
-        torus_action.triggered.connect(lambda: self.shape_creation_requested.emit(ShapeType.TORUS))
-        create_menu.addAction(torus_action)
-        
-        # Add separator before import/export
-        menu.addSeparator()
-        
-        # Add import/export menu for single shape selection
-        if len(selected_shape_ids) == 1:
-            export_menu = menu.addMenu("Export Shape")
+        # Actions when clicking on empty space
+        else:
+            # Create Shape submenu
+            create_menu = menu.addMenu("Create Shape")
+            shapes = [
+                ("Box", ShapeType.BOX),
+                ("Sphere", ShapeType.SPHERE),
+                ("Cylinder", ShapeType.CYLINDER),
+                ("Cone", ShapeType.CONE),
+                ("Torus", ShapeType.TORUS),
+            ]
+            for name, shape_type in shapes:
+                action = QAction(name, self)
+                action.triggered.connect(lambda _, st=shape_type: self.shape_creation_requested.emit(st))
+                create_menu.addAction(action)
             
-            export_step_action = QAction("Export as STEP...", self)
-            export_step_action.triggered.connect(lambda: self.export_step_requested.emit(selected_shape_ids[0]))
-            export_menu.addAction(export_step_action)
-            
-            export_iges_action = QAction("Export as IGES...", self)
-            export_iges_action.triggered.connect(lambda: self.export_iges_requested.emit(selected_shape_ids[0]))
-            export_menu.addAction(export_iges_action)
+            # Import action
+            import_action = QAction("Import CAD File...", self)
+            import_action.triggered.connect(lambda: self.import_requested.emit())
+            menu.addAction(import_action)
         
-        # Add import menu (always available)
-        import_menu = menu.addMenu("Import Geometry")
-        
-        import_step_action = QAction("Import STEP...", self)
-        import_step_action.triggered.connect(lambda: self.import_step_requested.emit())
-        import_menu.addAction(import_step_action)
-        
-        import_iges_action = QAction("Import IGES...", self)
-        import_iges_action.triggered.connect(lambda: self.import_iges_requested.emit())
-        import_menu.addAction(import_iges_action)
-        
-        # Show the menu at the requested position
         menu.exec_(self.tree.viewport().mapToGlobal(position))
 
     # Geometry Manager signal handlers

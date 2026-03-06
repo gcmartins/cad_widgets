@@ -25,7 +25,7 @@ def test_export_import_step():
         assert os.path.exists(tmp_path), "STEP file should exist"
         
         # Import from STEP
-        imported_shape = geo.import_step(tmp_path)
+        imported_shape = geo.import_file(tmp_path)
         assert imported_shape is not None, "STEP import should succeed"
         assert not imported_shape.IsNull(), "Imported shape should not be null"
     finally:
@@ -52,7 +52,7 @@ def test_export_import_iges():
         assert os.path.exists(tmp_path), "IGES file should exist"
         
         # Import from IGES
-        imported_shape = geo.import_iges(tmp_path)
+        imported_shape = geo.import_file(tmp_path)
         assert imported_shape is not None, "IGES import should succeed"
         assert not imported_shape.IsNull(), "Imported shape should not be null"
     finally:
@@ -83,7 +83,7 @@ def test_export_step_complex_shape():
         assert os.path.exists(tmp_path), "STEP file should exist"
         
         # Import and verify
-        imported_shape = geo.import_step(tmp_path)
+        imported_shape = geo.import_file(tmp_path)
         assert imported_shape is not None, "STEP import should succeed"
         assert not imported_shape.IsNull(), "Imported shape should not be null"
     finally:
@@ -96,7 +96,7 @@ def test_import_nonexistent_step():
     """Test importing from a non-existent file."""
     geo = GeometryService()
     
-    result = geo.import_step("nonexistent_file.step")
+    result = geo.import_file("nonexistent_file.step")
     assert result is None, "Import from non-existent file should return None"
 
 
@@ -104,7 +104,7 @@ def test_import_nonexistent_iges():
     """Test importing from a non-existent file."""
     geo = GeometryService()
     
-    result = geo.import_iges("nonexistent_file.iges")
+    result = geo.import_file("nonexistent_file.iges")
     assert result is None, "Import from non-existent file should return None"
 
 
@@ -113,25 +113,37 @@ def test_geometry_manager_import_shape():
     manager = GeometryManager()
     geo = GeometryService()
     
-    # Create a shape to import
+    # Create a shape and export it to a temporary file
     box = geo.create_box(100, 50, 75)
     
-    # Import it through the manager
-    managed_shape = manager.import_shape(
-        shape=box,
-        name="Imported Box",
-        color=(0.6, 0.6, 0.7)
-    )
+    # Create a temporary file for the test
+    with tempfile.NamedTemporaryFile(suffix='.step', delete=False) as tmp:
+        tmp_path = tmp.name
     
-    assert managed_shape is not None, "Imported shape should be created"
-    assert managed_shape.shape_type == ShapeType.IMPORTED, "Shape type should be IMPORTED"
-    assert managed_shape.name == "Imported Box", "Shape name should match"
-    assert isinstance(managed_shape.properties, ImportedProperties), "Properties should be ImportedProperties"
-    
-    # Verify shape is in manager
-    retrieved = manager.get_shape(managed_shape.shape_id)
-    assert retrieved is not None, "Shape should be retrievable"
-    assert retrieved.shape_type == ShapeType.IMPORTED, "Retrieved shape type should be IMPORTED"
+    try:
+        # Export the box to STEP file
+        success = geo.export_step(box, tmp_path)
+        assert success, "Export should succeed"
+        
+        # Import it through the manager (name will be auto-generated as "IMPORTED_1")
+        managed_shape = manager.import_shape(
+            filename=tmp_path,
+            color=(0.6, 0.6, 0.7)
+        )
+        
+        assert managed_shape is not None, "Imported shape should be created"
+        assert managed_shape.shape_type == ShapeType.IMPORTED, "Shape type should be IMPORTED"
+        assert managed_shape.name == "Imported_1", "Shape name should be auto-generated"
+        assert isinstance(managed_shape.properties, ImportedProperties), "Properties should be ImportedProperties"
+        
+        # Verify shape is in manager
+        retrieved = manager.get_shape(managed_shape.shape_id)
+        assert retrieved is not None, "Shape should be retrievable"
+        assert retrieved.shape_type == ShapeType.IMPORTED, "Retrieved shape type should be IMPORTED"
+    finally:
+        # Clean up
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 def test_imported_shape_transformation_update():
@@ -141,59 +153,73 @@ def test_imported_shape_transformation_update():
     manager = GeometryManager()
     geo = GeometryService()
     
-    # Create and import a shape
+    # Create a shape and export it to a temporary file
     cylinder = geo.create_cylinder(20, 100)
-    managed_shape = manager.import_shape(
-        shape=cylinder,
-        name="Imported Cylinder",
-        color=(0.5, 0.5, 0.8)
-    )
     
-    # Initial properties should be zero
-    assert managed_shape.properties.translation.x == 0.0
-    assert managed_shape.properties.translation.y == 0.0
-    assert managed_shape.properties.translation.z == 0.0
-    assert managed_shape.properties.rotation.x == 0.0
-    assert managed_shape.properties.rotation.y == 0.0
-    assert managed_shape.properties.rotation.z == 0.0
+    # Create a temporary file for the test
+    with tempfile.NamedTemporaryFile(suffix='.step', delete=False) as tmp:
+        tmp_path = tmp.name
     
-    # Update with translation and rotation
-    new_props = ImportedProperties(
-        translation=Translation(x=50.0, y=100.0, z=150.0),
-        rotation=Rotation(x=45.0, y=90.0, z=180.0)
-    )
+    try:
+        # Export the cylinder to STEP file
+        success = geo.export_step(cylinder, tmp_path)
+        assert success, "Export should succeed"
+        
+        # Import it through the manager
+        managed_shape = manager.import_shape(
+            filename=tmp_path,
+            color=(0.5, 0.5, 0.8)
+        )
     
-    updated_shape = manager.update_shape(managed_shape.shape_id, new_props)
-    
-    # Verify shape was updated
-    assert updated_shape is not None, "Update should return a shape"
-    
-    # Verify properties were updated
-    retrieved = manager.get_shape(managed_shape.shape_id)
-    assert retrieved is not None
-    assert retrieved.properties.translation.x == 50.0
-    assert retrieved.properties.translation.y == 100.0
-    assert retrieved.properties.translation.z == 150.0
-    assert retrieved.properties.rotation.x == 45.0
-    assert retrieved.properties.rotation.y == 90.0
-    assert retrieved.properties.rotation.z == 180.0
-    
-    # Update again with different values
-    new_props2 = ImportedProperties(
-        translation=Translation(x=20.0, y=30.0, z=40.0),
-        rotation=Rotation(x=15.0, y=30.0, z=45.0)
-    )
-    
-    updated_shape2 = manager.update_shape(managed_shape.shape_id, new_props2)
-    assert updated_shape2 is not None, "Second update should also work"
-    
-    retrieved2 = manager.get_shape(managed_shape.shape_id)
-    assert retrieved2 is not None
-    assert retrieved2.properties.translation.x == 20.0
-    assert retrieved2.properties.translation.y == 30.0
-    assert retrieved2.properties.translation.z == 40.0
-    assert retrieved2.properties.rotation.x == 15.0
-    assert retrieved2.properties.rotation.y == 30.0
-    assert retrieved2.properties.rotation.z == 45.0
+        # Initial properties should be zero
+        assert managed_shape.properties.translation.x == 0.0
+        assert managed_shape.properties.translation.y == 0.0
+        assert managed_shape.properties.translation.z == 0.0
+        assert managed_shape.properties.rotation.x == 0.0
+        assert managed_shape.properties.rotation.y == 0.0
+        assert managed_shape.properties.rotation.z == 0.0
+        
+        # Update with translation and rotation
+        new_props = ImportedProperties(
+            translation=Translation(x=50.0, y=100.0, z=150.0),
+            rotation=Rotation(x=45.0, y=90.0, z=180.0)
+        )
+        
+        updated_shape = manager.update_shape(managed_shape.shape_id, new_props)
+        
+        # Verify shape was updated
+        assert updated_shape is not None, "Update should return a shape"
+        
+        # Verify properties were updated
+        retrieved = manager.get_shape(managed_shape.shape_id)
+        assert retrieved is not None
+        assert retrieved.properties.translation.x == 50.0
+        assert retrieved.properties.translation.y == 100.0
+        assert retrieved.properties.translation.z == 150.0
+        assert retrieved.properties.rotation.x == 45.0
+        assert retrieved.properties.rotation.y == 90.0
+        assert retrieved.properties.rotation.z == 180.0
+        
+        # Update again with different values
+        new_props2 = ImportedProperties(
+            translation=Translation(x=20.0, y=30.0, z=40.0),
+            rotation=Rotation(x=15.0, y=30.0, z=45.0)
+        )
+        
+        updated_shape2 = manager.update_shape(managed_shape.shape_id, new_props2)
+        assert updated_shape2 is not None, "Second update should also work"
+        
+        retrieved2 = manager.get_shape(managed_shape.shape_id)
+        assert retrieved2 is not None
+        assert retrieved2.properties.translation.x == 20.0
+        assert retrieved2.properties.translation.y == 30.0
+        assert retrieved2.properties.translation.z == 40.0
+        assert retrieved2.properties.rotation.x == 15.0
+        assert retrieved2.properties.rotation.y == 30.0
+        assert retrieved2.properties.rotation.z == 45.0
+    finally:
+        # Clean up
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 

@@ -176,11 +176,9 @@ class CADViewerWindow(QMainWindow):
         self.geometry_tree.export_iges_requested.connect(
             self._on_export_iges_requested
         )
-        self.geometry_tree.import_step_requested.connect(
-            self._on_import_step_requested
-        )
-        self.geometry_tree.import_iges_requested.connect(
-            self._on_import_iges_requested
+        # Connect unified import signal
+        self.geometry_tree.import_requested.connect(
+            self._on_import_requested
         )
 
         # Connect property editor signals
@@ -235,13 +233,9 @@ class CADViewerWindow(QMainWindow):
         
         properties = properties_map.get(shape_type, BoxProperties())
         
-        # Create shape name
-        shape_name = f"{shape_type.value.title()} {len(self.geometry_manager._shapes) + 1}"
-        
-        # Create the shape via geometry manager
+        # Create the shape via geometry manager (name will be auto-generated)
         self.geometry_manager.create_shape(
             shape_type=shape_type,
-            name=shape_name,
             color=color,
             properties=properties
         )
@@ -382,69 +376,31 @@ class CADViewerWindow(QMainWindow):
             else:
                 QMessageBox.critical(self, "Export Error", f"Failed to export shape to {filename}")
 
-    def _on_import_step_requested(self):
-        """Handle STEP import request."""
-        # Show file dialog
+    def _on_import_requested(self):
+        """Handle import request for STEP or IGES files."""
+        # Show file dialog that accepts both STEP and IGES
         filename, _ = QFileDialog.getOpenFileName(
             self,
-            "Import STEP File",
+            "Import CAD File",
             "",
-            "STEP Files (*.step *.stp);;All Files (*)"
+            "CAD Files (*.step *.stp *.iges *.igs);;STEP Files (*.step *.stp);;IGES Files (*.iges *.igs);;All Files (*)"
         )
         
         if filename:
-            # Import using GeometryService
-            geo_service = GeometryService()
-            shape = geo_service.import_step(filename)
+            # Import using unified import_shape method (automatically detects format)
+            # Name will be auto-generated as "Imported_1", "Imported_2", etc.
+            managed_shape = self.geometry_manager.import_shape(
+                filename=filename,
+                color=(0.6, 0.6, 0.7),
+                properties=ImportedProperties()
+            )
             
-            if shape:
-                # Extract filename without extension for shape name                
-                base_name = os.path.splitext(os.path.basename(filename))[0]
-                
-                # Import shape using the new import_shape method
-                self.geometry_manager.import_shape(
-                    shape=shape,
-                    name=f"Imported: {base_name}",
-                    color=(0.6, 0.6, 0.7),
-                    properties=ImportedProperties()
-                )
-                
+            if managed_shape:
                 self.viewer.fit_all()
                 QMessageBox.information(self, "Import Success", f"Shape imported from {filename}")
             else:
                 QMessageBox.critical(self, "Import Error", f"Failed to import shape from {filename}")
 
-    def _on_import_iges_requested(self):
-        """Handle IGES import request."""
-        # Show file dialog
-        filename, _ = QFileDialog.getOpenFileName(
-            self,
-            "Import IGES File",
-            "",
-            "IGES Files (*.iges *.igs);;All Files (*)"
-        )
-        
-        if filename:
-            # Import using GeometryService
-            geo_service = GeometryService()
-            shape = geo_service.import_iges(filename)
-            
-            if shape:
-                # Extract filename without extension for shape name
-                base_name = os.path.splitext(os.path.basename(filename))[0]
-                
-                # Import shape using the new import_shape method
-                self.geometry_manager.import_shape(
-                    shape=shape,
-                    name=f"Imported: {base_name}",
-                    color=(0.6, 0.6, 0.7),
-                    properties=ImportedProperties()
-                )
-                
-                self.viewer.fit_all()
-                QMessageBox.information(self, "Import Success", f"Shape imported from {filename}")
-            else:
-                QMessageBox.critical(self, "Import Error", f"Failed to import shape from {filename}")
 
     def load_example_shapes(self):
         """Load example 3D shapes into the viewer."""

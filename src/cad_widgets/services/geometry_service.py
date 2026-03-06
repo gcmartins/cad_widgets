@@ -319,24 +319,23 @@ class GeometryService:
             return False
 
     @staticmethod
-    def import_step(filename: str) -> Optional[TopoDS_Shape]:
-        """Import a shape from a STEP file.
+    def _import_with_reader(reader, filename: str, file_type: str) -> Optional[TopoDS_Shape]:
+        """Common import logic for STEP and IGES files.
         
         Args:
-            filename: Path to the STEP file to import
+            reader: The reader object (STEPControl_Reader or IGESControl_Reader)
+            filename: Path to the file to import
+            file_type: Type of file for error messages ("STEP" or "IGES")
             
         Returns:
             Imported shape or None if import failed
         """
         try:
-            # Create STEP reader
-            reader = STEPControl_Reader()
-            
             # Read file
             status = reader.ReadFile(filename)
             
             if status != IFSelect_ReturnStatus.IFSelect_RetDone:
-                print(f"Error reading STEP file: {filename}")
+                print(f"Error reading {file_type} file: {filename}")
                 return None
             
             # Transfer roots
@@ -347,7 +346,28 @@ class GeometryService:
             
             return shape if not shape.IsNull() else None
         except Exception as e:
-            print(f"Error importing STEP file: {e}")
+            print(f"Error importing {file_type} file: {e}")
+            return None
+
+    @staticmethod
+    def import_file(filename: str) -> Optional[TopoDS_Shape]:
+        """Import a shape from a file (STEP or IGES).
+        File type is automatically detected based on extension.
+        
+        Args:
+            filename: Path to the file to import (.step, .stp, .iges, .igs)
+            
+        Returns:
+            Imported shape or None if import failed
+        """
+        # Detect file type from extension
+        filename_lower = filename.lower()
+        if filename_lower.endswith(('.step', '.stp')):
+            return GeometryService._import_with_reader(STEPControl_Reader(), filename, "STEP")
+        elif filename_lower.endswith(('.iges', '.igs')):
+            return GeometryService._import_with_reader(IGESControl_Reader(), filename, "IGES")
+        else:
+            print(f"Unsupported file format: {filename}")
             return None
 
     @staticmethod
@@ -376,35 +396,3 @@ class GeometryService:
         except Exception as e:
             print(f"Error exporting IGES file: {e}")
             return False
-
-    @staticmethod
-    def import_iges(filename: str) -> Optional[TopoDS_Shape]:
-        """Import a shape from an IGES file.
-        
-        Args:
-            filename: Path to the IGES file to import
-            
-        Returns:
-            Imported shape or None if import failed
-        """
-        try:
-            # Create IGES reader
-            reader = IGESControl_Reader()
-            
-            # Read file
-            status = reader.ReadFile(filename)
-            
-            if status != IFSelect_ReturnStatus.IFSelect_RetDone:
-                print(f"Error reading IGES file: {filename}")
-                return None
-            
-            # Transfer roots
-            reader.TransferRoots()
-            
-            # Get shape
-            shape = reader.OneShape()
-            
-            return shape if not shape.IsNull() else None
-        except Exception as e:
-            print(f"Error importing IGES file: {e}")
-            return None

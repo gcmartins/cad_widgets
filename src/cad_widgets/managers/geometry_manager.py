@@ -68,25 +68,45 @@ class GeometryManager(QObject):
         """Generate a new unique shape ID based on shape type."""
         return f"{shape_type.value}_{uuid.uuid4().hex[:8]}"
 
+    def _generate_shape_name(self, shape_type: ShapeType) -> str:
+        """
+        Generate a standardized shape name based on shape type.
+        Pattern: <SHAPE_TYPE>_<incremental_number>
+        
+        Args:
+            shape_type: Type of shape (ShapeType enum)
+            
+        Returns:
+            Generated name (e.g., "Box_1", "Sphere_2", "Union_1")
+        """
+        # Count existing shapes of this type
+        count = sum(1 for s in self._shapes.values() if s.shape_type == shape_type)
+        # Generate name with capitalized shape type and incremental number
+        return f"{shape_type.value.capitalize()}_{count + 1}"
+
     def create_shape(
         self,
         shape_type: ShapeType,
-        name: str,
         color: Tuple[float, float, float],
-        properties: ShapeProperties
+        properties: ShapeProperties,
+        name: Optional[str] = None
     ) -> Any:
         """
         Create a shape from properties.
         
         Args:
             shape_type: Type of shape (ShapeType enum)
-            name: Display name
             color: RGB color tuple
             properties: Shape properties
+            name: Display name (auto-generated if None)
             
         Returns:
             Created TopoDS_Shape
         """
+        # Auto-generate name if not provided
+        if name is None:
+            name = self._generate_shape_name(shape_type)
+        
         shape = self._create_shape_from_properties(shape_type, properties)
         
         if shape:
@@ -108,25 +128,37 @@ class GeometryManager(QObject):
 
     def import_shape(
         self,
-        shape: Any,
-        name: str,
+        filename: str,
         color: Tuple[float, float, float],
-        properties: Optional[ImportedProperties] = None
+        properties: Optional[ImportedProperties] = None,
+        name: Optional[str] = None
     ) -> Any:
         """
-        Import an existing shape (from STEP, IGES, etc.).
+        Import an existing shape from a file (STEP or IGES).
+        File type is automatically detected based on extension.
         
         Args:
-            shape: TopoDS_Shape to import
-            name: Display name
+            filename: Path to the file to import (.step, .stp, .iges, .igs)
             color: RGB color tuple
             properties: Optional ImportedProperties (defaults to new instance)
+            name: Display name (auto-generated if None)
             
         Returns:
-            ManagedShape instance
+            ManagedShape instance or None if import fails
         """
+        # Import using unified import_file method
+        shape = self._geo_service.import_file(filename)
+        
+        # Check if import was successful
+        if shape is None:
+            return None
+        
         if properties is None:
             properties = ImportedProperties()
+        
+        # Auto-generate name if not provided
+        if name is None:
+            name = self._generate_shape_name(ShapeType.IMPORTED)
         
         # Apply transformations if any
         transformed_shape = self._apply_transformations(shape, properties)
@@ -273,7 +305,6 @@ class GeometryManager(QObject):
         # Start with first shape
         result_shape = shapes[0].shape
         result_color = shapes[0].color
-        result_name = "Union"
         
         # Union with remaining shapes
         for managed_shape in shapes[1:]:
@@ -281,8 +312,9 @@ class GeometryManager(QObject):
             if result_shape is None:
                 return None
         
-        # Generate new shape ID
+        # Generate new shape ID and name
         new_shape_id = self._new_shape_id(ShapeType.UNION)
+        result_name = self._generate_shape_name(ShapeType.UNION)
         
         # Create managed shape with basic properties (translation/rotation are already applied)   
         properties = ShapeProperties(
@@ -334,7 +366,6 @@ class GeometryManager(QObject):
         # Start with first shape as base
         result_shape = shapes[0].shape
         result_color = shapes[0].color
-        result_name = "Subtraction"
         
         # Subtract remaining shapes
         for managed_shape in shapes[1:]:
@@ -342,8 +373,9 @@ class GeometryManager(QObject):
             if result_shape is None:
                 return None
         
-        # Generate new shape ID
+        # Generate new shape ID and name
         new_shape_id = self._new_shape_id(ShapeType.SUBTRACTION)
+        result_name = self._generate_shape_name(ShapeType.SUBTRACTION)
         
         # Create managed shape with basic properties
         properties = ShapeProperties(
