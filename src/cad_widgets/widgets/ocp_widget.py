@@ -20,6 +20,8 @@ from OCP.Aspect import Aspect_DisplayConnection
 from OCP.OpenGl import OpenGl_GraphicDriver
 from OCP.AIS import AIS_InteractiveContext
 
+from cad_widgets.managers.geometry_manager import ManagedShape
+
 from ..enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode
 from ..services import SelectionService, ViewService
 
@@ -55,16 +57,16 @@ class OCPWidget(QWidget):
         self._view: V3d_View
         self._context = None
 
-        # Services
-        self._selection_service: Optional[SelectionService] = None
-        self._view_service: Optional[ViewService] = None
-
         # Mouse tracking
         self._last_pos = None
         self._mouse_moved = False  # Track if mouse moved during press
 
         # Initialize the viewer
         self._init_viewer()
+
+        # Initialize services
+        self._selection_service = SelectionService(self._context)
+        self._view_service = ViewService(self._view, self._viewer, self._context)
 
         # Setup the view after widget is shown
         QTimer.singleShot(100, self._setup_view)
@@ -90,13 +92,6 @@ class OCPWidget(QWidget):
 
             # Create AIS context for interactive display
             self._context = AIS_InteractiveContext(self._viewer)
-
-            # Initialize services
-            self._selection_service = SelectionService(self._context)
-            self._view_service = ViewService(self._view, self._viewer, self._context)
-
-            # Note: Window setup happens via native Qt integration
-            # The viewer renders when paintEvent triggers Redraw()
 
         except Exception as e:
             print(f"Error initializing viewer: {e}")
@@ -497,7 +492,7 @@ class OCPWidget(QWidget):
 
     # Geometry Manager signal handlers
     
-    def on_shape_created(self, shape_id: str, managed_shape):
+    def on_shape_created(self, shape_id: str, managed_shape: ManagedShape):
         """
         Handle shape creation from geometry manager.
         
@@ -515,7 +510,7 @@ class OCPWidget(QWidget):
             shape_id=shape_id
         )
     
-    def on_shape_updated(self, shape_id: str, managed_shape):
+    def on_shape_updated(self, shape_id: str, managed_shape: ManagedShape):
         """
         Handle shape update from geometry manager.
         

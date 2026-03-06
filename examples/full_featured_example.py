@@ -176,7 +176,6 @@ class CADViewerWindow(QMainWindow):
         self.geometry_tree.export_iges_requested.connect(
             self._on_export_iges_requested
         )
-        # Connect unified import signal
         self.geometry_tree.import_requested.connect(
             self._on_import_requested
         )
@@ -471,9 +470,6 @@ class CADViewerWindow(QMainWindow):
 
         # Fit all shapes in view
         self.viewer.fit_all()
-
-        # Initialize selection mode
-        self.viewer.set_selection_mode(SelectionMode.VOLUME)
 
 
 def main():
