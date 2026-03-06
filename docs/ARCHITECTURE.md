@@ -196,8 +196,7 @@ Tree view widget for managing geometry in a hierarchical structure.
 - `shapes_subtract_requested(list)` - Boolean subtraction requested
 - `export_step_requested(str)` - Export shape to STEP file
 - `export_iges_requested(str)` - Export shape to IGES file
-- `import_step_requested()` - Import STEP file
-- `import_iges_requested()` - Import IGES file
+- `import_requested()` - Import CAD file (STEP or IGES)
 
 **Usage**:
 ```python
@@ -261,10 +260,9 @@ Service for creating and manipulating 3D shapes using OpenCascade.
 - `create_union(shape1, shape2)` - Boolean union
 - `create_subtraction(shape1, shape2)` - Boolean subtraction
 - `create_intersection(shape1, shape2)` - Boolean intersection
+- `import_file(filename)` - Import shape from file (auto-detects STEP or IGES)
 - `export_step(shape, filename)` - Export shape to STEP file
-- `import_step(filename)` - Import shape from STEP file
 - `export_iges(shape, filename)` - Export shape to IGES file
-- `import_iges(filename)` - Import shape from IGES file
 
 **Usage**:
 ```python
@@ -287,7 +285,7 @@ union = geo.create_union(box, sphere)
 
 # Import/Export
 GeometryService.export_step(box, "box.step")
-imported = GeometryService.import_step("model.step")
+imported = GeometryService.import_file("model.step")
 ```
 
 #### ViewService
@@ -370,7 +368,7 @@ High-level manager for geometry lifecycle and property management.
 - `all_cleared()` - All shapes cleared
 
 **Key Methods**:
-- `create_shape(shape_id, shape_type, name, color, properties)` - Create managed shape
+- `create_shape(shape_type, color, properties, name=None)` - Create managed shape (name auto-generated if not provided)
 - `update_shape(shape_id, properties)` - Update shape properties
 - `get_shape(shape_id)` - Get managed shape
 - `remove_shape(shape_id)` - Remove shape
@@ -383,21 +381,19 @@ from cad_widgets import GeometryManager, BoxProperties, ShapeType, Translation
 
 manager = GeometryManager()
 
-# Create shape with properties
+# Create shape with properties (name will be auto-generated as "BOX_1")
 properties = BoxProperties(width=100, height=50, depth=75)
 properties.translation = Translation(x=50, y=0, z=0)
 
-shape = manager.create_shape(
-    shape_id="box_1",
+managed_shape = manager.create_shape(
     shape_type=ShapeType.BOX,
-    name="My Box",
     color=(0.8, 0.2, 0.2),
     properties=properties
 )
 
-# Update properties
+# Update properties using the auto-generated shape_id
 properties.width = 150
-manager.update_shape("box_1", properties)
+manager.update_shape(managed_shape.shape_id, properties)
 ```
 
 ### Models Layer
@@ -513,9 +509,12 @@ class GeometryManager(QObject):
     
     shape_created = Signal(str, object)
     
-    def create_shape(self, shape_id, shape_type, name, color, properties):
+    def create_shape(self, shape_type, color, properties, name=None):
+        if name is None:
+            name = self._generate_shape_name(shape_type)
         shape = self._create_from_properties(properties)
-        managed = ManagedShape(shape, shape_type, name, color, properties)
+        shape_id = self._new_shape_id(shape_type)
+        managed = ManagedShape(shape_id, shape, shape_type, name, color, properties)
         self._shapes[shape_id] = managed
         self.shape_created.emit(shape_id, managed)
 ```
@@ -612,8 +611,7 @@ Core 3D viewer widget methods:
 - `shapes_subtract_requested(list)` - Boolean subtraction requested
 - `export_step_requested(str)` - Export shape to STEP file
 - `export_iges_requested(str)` - Export shape to IGES file
-- `import_step_requested()` - Import STEP file
-- `import_iges_requested()` - Import IGES file
+- `import_requested()` - Import CAD file (STEP or IGES)
 
 #### PropertyEditorWidget Signals
 
@@ -633,6 +631,9 @@ Shape creation and manipulation methods:
 - `create_union(shape1, shape2)` - Boolean union
 - `create_subtraction(shape1, shape2)` - Boolean subtraction
 - `create_intersection(shape1, shape2)` - Boolean intersection
+- `import_file(filename)` - Import shape from file (auto-detects STEP or IGES)
+- `export_step(shape, filename)` - Export shape to STEP file
+- `export_iges(shape, filename)` - Export shape to IGES file
 
 ### ViewService Methods
 
@@ -660,7 +661,7 @@ Selection management methods:
 
 High-level geometry lifecycle management:
 
-- `create_shape(shape_id, shape_type, name, color, properties)` - Create managed shape
+- `create_shape(shape_type, color, properties, name=None)` - Create managed shape (name auto-generated if not provided)
 - `update_shape(shape_id, properties)` - Update shape properties
 - `get_shape(shape_id)` - Get managed shape
 - `remove_shape(shape_id)` - Remove shape
@@ -861,13 +862,13 @@ from cad_widgets import GeometryManager, BoxProperties, ShapeType
 
 manager = GeometryManager()
 
-# Create with properties
+# Create with properties (name will be auto-generated as "BOX_1")
 properties = BoxProperties(width=100, height=50, depth=75)
-shape = manager.create_shape("box_1", ShapeType.BOX, "My Box", (0.8, 0.2, 0.2), properties)
+managed_shape = manager.create_shape(ShapeType.BOX, (0.8, 0.2, 0.2), properties)
 
 # Update later
 properties.width = 150
-manager.update_shape("box_1", properties)  # Shape automatically regenerated
+manager.update_shape(managed_shape.shape_id, properties)  # Shape automatically regenerated
 ```
 
 ### 3. Connect Signals for Modular Design
@@ -1044,13 +1045,11 @@ class CADViewerWindow(QMainWindow):
     
     def _create_initial_shapes(self):
         """Create some initial shapes to display."""
-        # Create a box
+        # Create a box (name will be auto-generated as "BOX_1")
         box_props = BoxProperties(width=100, height=50, depth=75)
         box_props.translation = Translation(x=-60, y=0, z=0)
         self.geometry_manager.create_shape(
-            shape_id="box_1",
             shape_type=ShapeType.BOX,
-            name="Box",
             color=(0.8, 0.2, 0.2),
             properties=box_props
         )
@@ -1127,6 +1126,11 @@ if success:
 success = GeometryService.export_iges(box, "output.iges")
 if success:
     print("Successfully exported to IGES")
+
+# Import from file (automatically detects format)
+imported_shape = GeometryService.import_file("input.step")  # or .stp, .iges, .igs
+if imported_shape:
+    print("Successfully imported shape")
 ```
 
 ### Importing Shapes
@@ -1134,28 +1138,29 @@ if success:
 Import shapes and add them to your scene:
 
 ```python
-from cad_widgets import GeometryService, GeometryManager, ImportedProperties
+from cad_widgets import GeometryManager, ImportedProperties, Translation
 
-# Import from file
-imported_shape = GeometryService.import_step("model.step")
+# Import from file (automatically detects STEP or IGES based on extension)
+manager = GeometryManager()
 
-if imported_shape:
-    # Create manager to handle the imported shape
-    manager = GeometryManager()
-    
-    # Import into manager with properties
-    properties = ImportedProperties()
-    properties.translation = Translation(x=50, y=0, z=0)
-    
-    managed = manager.import_shape(
-        shape=imported_shape,
-        name="Imported Model",
-        color=(0.5, 0.5, 0.8),
-        properties=properties
-    )
-    
-    # Display in viewer
-    viewer.display_shape(managed.shape, color=managed.color)
+# Import with auto-generated name
+managed = manager.import_shape(
+    filename="model.step",
+    color=(0.5, 0.5, 0.8)
+)
+
+# Import with custom transformation
+properties = ImportedProperties()
+properties.translation = Translation(x=50, y=0, z=0)
+
+managed = manager.import_shape(
+    filename="model.iges", 
+    color=(0.5, 0.5, 0.8),
+    properties=properties
+)
+
+# Display in viewer
+viewer.display_shape(managed.shape, color=managed.color)
 ```
 
 ### UI Integration
@@ -1165,7 +1170,7 @@ The `GeometryTreeWidget` provides built-in context menu actions for import/expor
 ```python
 # Connect import/export signals
 tree.export_step_requested.connect(handle_export_step)
-tree.import_step_requested.connect(handle_import_step)
+tree.import_requested.connect(handle_import)
 
 def handle_export_step(shape_id: str):
     """Handle STEP export from context menu."""
@@ -1175,15 +1180,15 @@ def handle_export_step(shape_id: str):
         if filename:
             GeometryService.export_step(managed.shape, filename)
 
-def handle_import_step():
-    """Handle STEP import from context menu."""
+def handle_import():
+    """Handle CAD file import from context menu."""
     filename = get_open_filename()
     if filename:
-        shape = GeometryService.import_step(filename)
-        if shape:
-            geometry_manager.import_shape(
-                shape, "Imported", (0.7, 0.7, 0.7)
-            )
+        # Name will be auto-generated based on import count
+        # Format (STEP or IGES) is auto-detected from file extension
+        geometry_manager.import_shape(
+            filename=filename, color=(0.7, 0.7, 0.7)
+        )
 ```
 
 ### Best Practices

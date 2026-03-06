@@ -1,7 +1,7 @@
 [project]
 name = "cad-widgets"
-version = "0.1.0"
-description = "OpenCascade PySide6 3D CAD viewer widgets with modular architecture"
+version = "0.1.1"
+description = "OpenCascade PySide6 3D CAD domain widgets with modular architecture"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -11,7 +11,7 @@ dependencies = [
     "cadquery-ocp-stubs>=7.9.3.1",
 ]
 authors = [
-    {name = "CAD Widgets Contributors"}
+    { name = "Gustavo Martins", email = "gucmartins@gmail.com" }
 ]
 keywords = ["cad", "opencascade", "pyside6", "3d", "viewer", "widget"]
 classifiers = [

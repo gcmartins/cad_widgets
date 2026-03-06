@@ -132,11 +132,14 @@ box = geo.create_box(100, 100, 100)
 GeometryService.export_step(box, "output.step")
 GeometryService.export_iges(box, "output.iges")
 
-# Import shapes
-imported_shape = GeometryService.import_step("input.step")
-if imported_shape:
-    manager = GeometryManager()
-    manager.import_shape(imported_shape, "Imported Part", (0.5, 0.5, 0.8))
+# Import shapes (automatically detects STEP or IGES based on extension)
+# Option 1: Using GeometryService directly
+imported_shape = GeometryService.import_file("input.step")
+
+# Option 2: Using GeometryManager (recommended for full integration)
+manager = GeometryManager()
+# Name will be auto-generated as "IMPORTED_1", "IMPORTED_2", etc.
+manager.import_shape(filename="input.step", color=(0.5, 0.5, 0.8))
 ```
 
 ## Dependencies
