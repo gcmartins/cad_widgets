@@ -73,7 +73,7 @@ class GeometryTreeWidget(QWidget):
         # Header
         header_label = QLabel("Geometry Tree")
         header_label.setStyleSheet(
-            "font-size: 14px; font-weight: bold; padding: 5px;"
+            "font-size: 14px; font-weight: bold;"
         )
         layout.addWidget(header_label)
         
@@ -89,11 +89,6 @@ class GeometryTreeWidget(QWidget):
         # Enable context menu
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self._on_context_menu)
-        
-        # Set column widths
-        header = self.tree.header()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         
         # Connect tree signals
         self.tree.itemChanged.connect(self._on_item_changed)
