@@ -28,8 +28,6 @@ from ..services import SelectionService, ViewService
 # Platform-specific window imports
 if sys.platform == "win32":
     from OCP.WNT import WNT_Window
-elif sys.platform == "darwin":
-    from OCP.Cocoa import Cocoa_Window
 else:
     from OCP.Xw import Xw_Window
 
@@ -47,6 +45,7 @@ class OCPWidget(QWidget):
         self.setMouseTracking(True)
 
         # Set widget attributes for proper rendering
+        self.setAttribute(Qt.WidgetAttribute.WA_NativeWindow, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
 
@@ -138,11 +137,19 @@ class OCPWidget(QWidget):
             window_handle = int(self.winId())
 
             if sys.platform == "win32":
-                # Windows
-                occ_window = WNT_Window(window_handle)
-            elif sys.platform == "darwin":
-                # macOS
-                occ_window = Cocoa_Window(window_handle)
+                # Windows: WNT_Window expects a PyCapsule wrapping the HWND.
+                # ctypes.c_void_p is not accepted; we must build the capsule
+                # explicitly via the CPython C API.
+                import ctypes
+                _PyCapsule_New = ctypes.pythonapi.PyCapsule_New
+                _PyCapsule_New.restype = ctypes.py_object
+                _PyCapsule_New.argtypes = [
+                    ctypes.c_void_p,  # pointer
+                    ctypes.c_char_p,  # name  (NULL → unnamed)
+                    ctypes.c_void_p,  # destructor (NULL → none)
+                ]
+                hwnd_capsule = _PyCapsule_New(window_handle, None, None)
+                occ_window = WNT_Window(hwnd_capsule)
             else:
                 # Linux/X11
                 # On X11, we need both display and window ID

@@ -18,7 +18,7 @@ A Python library for building 3D CAD features with PySide6 and OpenCascade (OCP)
 - 📁 **Import/Export** - STEP and IGES file format support
 - 🧪 **Well Tested** - Comprehensive test suite with >70% coverage
 - 📚 **Documented** - Extensive documentation and examples
-- 🖥️ **Cross-Platform** - Works on Linux (X11), Windows, and macOS
+- 🖥️ **Cross-Platform** - Works on Linux (X11) and Windows
 
 ## Quick Start
 
