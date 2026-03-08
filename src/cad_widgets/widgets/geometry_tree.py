@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QLabel,
-    QHeaderView,
     QMenu,
 )
 from PySide6.QtCore import Qt, Signal, QPoint

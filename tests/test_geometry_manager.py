@@ -143,8 +143,8 @@ def test_create_cone_shape(geometry_manager, qapp):
 def test_create_torus_shape(geometry_manager, qapp):
     """Test creating a torus shape."""
     properties = TorusProperties(
-        radius=30.0,
-        length=10.0,
+        major_radius=30.0,
+        minor_radius=10.0,
         translation=Translation(x=0.0, y=0.0, z=0.0),
         rotation=Rotation(x=0.0, y=0.0, z=0.0)
     )
@@ -434,13 +434,13 @@ def test_create_properties_for_type_torus():
     """Test creating TorusProperties using factory method."""
     properties = GeometryManager.create_properties_for_type(
         ShapeType.TORUS,
-        radius=40.0,
-        length=15.0
+        major_radius=40.0,
+        minor_radius=15.0
     )
     
     assert isinstance(properties, TorusProperties)
-    assert properties.radius == 40.0
-    assert properties.length == 15.0
+    assert properties.major_radius == 40.0
+    assert properties.minor_radius == 15.0
 
 
 def test_properties_from_dict_box():

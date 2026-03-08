@@ -476,8 +476,8 @@ class GeometryManager(QObject):
             )
         elif shape_type == ShapeType.TORUS and isinstance(properties, TorusProperties):
             shape = self._geo_service.create_torus(
-                properties.radius,
-                properties.length
+                properties.major_radius,
+                properties.minor_radius
             )
         elif shape_type == ShapeType.IMPORTED and isinstance(properties, ImportedProperties):
             # For imported shapes, no base shape is created

@@ -17,7 +17,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
-from cad_widgets.managers.geometry_manager import ManagedShape
 from cad_widgets.enums import ShapeType
 
 
@@ -95,6 +94,8 @@ class PropertyEditorWidget(QWidget):
         self._create_size_parameter("base_radius", "Base Radius:", size_layout)
         self._create_size_parameter("top_radius", "Top Radius:", size_layout)
         self._create_size_parameter("length", "Length:", size_layout)
+        self._create_size_parameter("major_radius", "Major Radius:", size_layout)
+        self._create_size_parameter("minor_radius", "Minor Radius:", size_layout)
         
         self.size_group.setLayout(size_layout)
         scroll_layout.addWidget(self.size_group)
@@ -259,7 +260,7 @@ class PropertyEditorWidget(QWidget):
             ShapeType.SPHERE: ["radius"],
             ShapeType.CYLINDER: ["radius", "height"],
             ShapeType.CONE: ["base_radius", "top_radius", "height"],
-            ShapeType.TORUS: ["radius", "length"],
+            ShapeType.TORUS: ["major_radius", "minor_radius"],
             ShapeType.UNION: [],  # No size parameters for boolean operations
             ShapeType.SUBTRACTION: [],  # No size parameters for boolean operations
             ShapeType.IMPORTED: [],  # No size parameters for imported shapes

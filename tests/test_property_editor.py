@@ -299,16 +299,16 @@ def test_multiple_value_changes(property_editor, qapp):
 def test_shape_type_visibility_torus(property_editor):
     """Test that torus shows correct parameters."""
     properties = {
-        "radius": 25.0,
-        "length": 10.0,
+        "major_radius": 25.0,
+        "minor_radius": 10.0,
         "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
         "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
     property_editor.set_shape("torus_1", ShapeType.TORUS, "Torus1", properties)
     
     # Check size parameters for torus
-    assert property_editor.size_spinboxes["radius"].isVisible()
-    assert property_editor.size_spinboxes["length"].isVisible()
+    assert property_editor.size_spinboxes["major_radius"].isVisible()
+    assert property_editor.size_spinboxes["minor_radius"].isVisible()
     assert not property_editor.size_spinboxes["width"].isVisible()
     assert not property_editor.size_spinboxes["height"].isVisible()
     assert not property_editor.size_spinboxes["depth"].isVisible()
