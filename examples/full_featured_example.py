@@ -33,7 +33,6 @@ from cad_widgets import (
     SelectionMode,
     ShapeType,
     GeometryManager,
-    GeometryService,
     BoxProperties,
     SphereProperties,
     CylinderProperties,
@@ -318,9 +317,8 @@ class CADViewerWindow(QMainWindow):
             if not filename.lower().endswith(('.step', '.stp')):
                 filename += '.step'
             
-            # Export using GeometryService
-            geo_service = GeometryService()
-            success = geo_service.export_step(managed_shape.shape, filename)
+            # Export using GeometryManager
+            success = self.geometry_manager.export_shape_to_step(shape_id, filename)
             
             if success:
                 QMessageBox.information(self, "Export Success", f"Shape exported to {filename}")
@@ -352,9 +350,8 @@ class CADViewerWindow(QMainWindow):
             if not filename.lower().endswith(('.iges', '.igs')):
                 filename += '.iges'
             
-            # Export using GeometryService
-            geo_service = GeometryService()
-            success = geo_service.export_iges(managed_shape.shape, filename)
+            # Export using GeometryManager
+            success = self.geometry_manager.export_shape_to_iges(shape_id, filename)
             
             if success:
                 QMessageBox.information(self, "Export Success", f"Shape exported to {filename}")

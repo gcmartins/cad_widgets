@@ -673,3 +673,15 @@ class GeometryManager(QObject):
         shape_ids = self.get_all_shape_ids()
         shapes = [self.get_shape(sid).shape for sid in shape_ids]
         return self._geo_service.export_shapes_to_step(shapes, filename)
+
+    def export_shape_to_iges(self, shape_id: str, filename: str) -> bool:
+        managed_shape = self.get_shape(shape_id)
+        if managed_shape is None:
+            return False
+        return self._geo_service.export_shapes_to_iges([managed_shape.shape], filename)
+    
+    def export_shape_to_step(self, shape_id: str, filename: str) -> bool:
+        managed_shape = self.get_shape(shape_id)
+        if managed_shape is None:
+            return False
+        return self._geo_service.export_shapes_to_step([managed_shape.shape], filename)
