@@ -448,7 +448,8 @@ class CADViewerWindow(QMainWindow):
             name="Magenta Torus",
             color=(0.7, 0.2, 0.7),
             properties=TorusProperties(
-                radius=25, length=10,
+                major_radius=25, 
+                minor_radius=10,
                 translation=Translation(x=-80, y=0, z=30),
                 rotation=Rotation(x=0, y=90, z=0)
             )

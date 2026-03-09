@@ -231,15 +231,15 @@ class ConeProperties(ShapeProperties):
 @dataclass
 class TorusProperties(ShapeProperties):
     """Properties for torus shapes."""
-    radius: float = 25.0
-    length: float = 10.0  # tube radius
+    major_radius: float = 25.0
+    minor_radius: float = 10.0  # tube radius
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         result = super().to_dict()
         result.update({
-            "radius": self.radius,
-            "length": self.length,
+            "major_radius": self.major_radius,
+            "minor_radius": self.minor_radius,
         })
         return result
 
@@ -247,8 +247,8 @@ class TorusProperties(ShapeProperties):
     def from_dict(cls, data: Dict[str, Any]) -> "TorusProperties":
         """Create from dictionary."""
         return cls(
-            radius=data.get("radius", 25.0),
-            length=data.get("length", 10.0),
+            major_radius=data.get("major_radius", 25.0),
+            minor_radius=data.get("minor_radius", 10.0),
             translation=Translation.from_dict(data.get("translation", {})),
             rotation=Rotation.from_dict(data.get("rotation", {})),
         )
@@ -257,8 +257,8 @@ class TorusProperties(ShapeProperties):
         """Get formatted properties for display."""
         formatted = super().get_formatted_properties()
         formatted.update({
-            "Radius": f"{self.radius:.2f}",
-            "Length": f"{self.length:.2f}",
+            "Major Radius": f"{self.major_radius:.2f}",
+            "Minor Radius": f"{self.minor_radius:.2f}",
         })
         return formatted
 
