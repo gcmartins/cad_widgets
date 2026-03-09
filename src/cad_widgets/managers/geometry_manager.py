@@ -4,8 +4,8 @@ Manages geometry shapes, their properties, and interactions with the viewer
 """
 import uuid
 
-from typing import Dict, Optional, Tuple, Any
-from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass, field
 
 from PySide6.QtCore import QObject, Signal
 
@@ -33,6 +33,10 @@ class ManagedShape:
     name: str
     color: Tuple[float, float, float]
     properties: ShapeProperties
+    # For UNION/SUBTRACTION: the input shapes kept as editable internal components
+    components: List["ManagedShape"] = field(default_factory=list)
+    # Set when this shape is an internal component of a boolean operation
+    parent_id: Optional[str] = None
 
 
 class GeometryManager(QObject):
@@ -186,6 +190,10 @@ class GeometryManager(QObject):
     ) -> Optional[Any]:
         """
         Update a shape with new properties.
+
+        When the shape is an internal component of a boolean operation the
+        component is rebuilt and the parent boolean shape is recomputed and
+        re-emitted automatically.
         
         Args:
             shape_id: ID of the shape to update
@@ -196,69 +204,173 @@ class GeometryManager(QObject):
         """
         if shape_id not in self._shapes:
             return None
-        
+
         managed_shape = self._shapes[shape_id]
-        
-        # For UNION, SUBTRACTION, and IMPORTED shapes, we need to:
-        # 1. Unapply the current transformations to get back to the base shape
-        # 2. Apply the new transformations
-        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION, ShapeType.IMPORTED):
-            # Get the base shape by unapplying current transformations
-            base_shape = managed_shape.shape
-            
-            # Unapply current translation (inverse operation)
-            old_tx = managed_shape.properties.translation.x
-            old_ty = managed_shape.properties.translation.y
-            old_tz = managed_shape.properties.translation.z
-            if old_tx != 0 or old_ty != 0 or old_tz != 0:
-                base_shape = self._geo_service.translate_shape(base_shape, -old_tx, -old_ty, -old_tz)
-            
-            # Unapply current rotation (inverse operation, in reverse order)
-            old_rz = managed_shape.properties.rotation.z
-            old_ry = managed_shape.properties.rotation.y
-            old_rx = managed_shape.properties.rotation.x
-            if old_rz != 0:
-                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (0, 0, 1), -old_rz)
-            if old_ry != 0:
-                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (0, 1, 0), -old_ry)
-            if old_rx != 0:
-                base_shape = self._geo_service.rotate_shape(base_shape, (0, 0, 0), (1, 0, 0), -old_rx)
-            
-            # Now apply new transformations to the base shape
+
+        # Case 1: component of a boolean op – update it then recompute parent
+        if managed_shape.parent_id is not None:
+            return self._update_component_shape(managed_shape, properties)
+
+        # Case 2: UNION/SUBTRACTION that owns components – recompute from scratch
+        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION) \
+                and managed_shape.components:
+            base_shape = self._recompute_boolean_from_components(managed_shape)
+            if base_shape is None:
+                return None
             new_shape = self._apply_transformations(base_shape, properties)
-        else:
-            # For primitive shapes, recreate from properties
-            new_shape = self._create_shape_from_properties(
-                managed_shape.shape_type,
-                properties
-            )
-        
+            managed_shape.shape = new_shape
+            managed_shape.properties = properties
+            self.shape_updated.emit(shape_id, managed_shape)
+            return new_shape
+
+        # Case 3: IMPORTED – swap transforms
+        if managed_shape.shape_type == ShapeType.IMPORTED:
+            new_shape = self._update_transformed_shape(managed_shape, properties)
+            if new_shape:
+                managed_shape.shape = new_shape
+                managed_shape.properties = properties
+                self.shape_updated.emit(shape_id, managed_shape)
+            return new_shape
+
+        # Case 4: primitive shape – recreate from properties
+        new_shape = self._create_shape_from_properties(managed_shape.shape_type, properties)
         if new_shape:
             managed_shape.shape = new_shape
             managed_shape.properties = properties
-            
-            # Emit signal for observers
             self.shape_updated.emit(shape_id, managed_shape)
-        
         return new_shape
+
+    def _update_component_shape(
+        self,
+        managed_shape: "ManagedShape",
+        properties: ShapeProperties
+    ) -> Optional[Any]:
+        """
+        Rebuild a component shape and propagate the change to its parent boolean.
+        """
+        parent = self._shapes.get(managed_shape.parent_id)
+        if parent is None:
+            return None
+
+        # Rebuild the component itself
+        if managed_shape.shape_type in (ShapeType.UNION, ShapeType.SUBTRACTION) \
+                and managed_shape.components:
+            base = self._recompute_boolean_from_components(managed_shape)
+            new_shape = self._apply_transformations(base, properties) if base else None
+        elif managed_shape.shape_type == ShapeType.IMPORTED:
+            new_shape = self._update_transformed_shape(managed_shape, properties)
+        else:
+            new_shape = self._create_shape_from_properties(managed_shape.shape_type, properties)
+
+        if new_shape is None:
+            return None
+
+        managed_shape.shape = new_shape
+        managed_shape.properties = properties
+
+        # Recompute the parent boolean using the rebuilt component
+        base_shape = self._recompute_boolean_from_components(parent)
+        if base_shape is None:
+            return None
+        parent.shape = self._apply_transformations(base_shape, parent.properties)
+
+        self.shape_updated.emit(parent.shape_id, parent)
+        return new_shape
+
+    def _recompute_boolean_from_components(
+        self,
+        managed_shape: "ManagedShape"
+    ) -> Optional[Any]:
+        """
+        Recompute the merged geometry of a boolean shape from its stored components.
+        """
+        if not managed_shape.components:
+            return managed_shape.shape
+
+        component_shapes = [c.shape for c in managed_shape.components]
+
+        if managed_shape.shape_type == ShapeType.UNION:
+            result = component_shapes[0]
+            for cs in component_shapes[1:]:
+                result = self._geo_service.fuse_shapes(result, cs)
+                if result is None:
+                    return None
+        elif managed_shape.shape_type == ShapeType.SUBTRACTION:
+            result = component_shapes[0]
+            for cs in component_shapes[1:]:
+                result = self._geo_service.cut_shapes(result, cs)
+                if result is None:
+                    return None
+        else:
+            return managed_shape.shape
+
+        return result
+
+    def _update_transformed_shape(
+        self,
+        managed_shape: "ManagedShape",
+        new_properties: ShapeProperties
+    ) -> Any:
+        """
+        Rebuild a shape by unapplying its current transformations then applying
+        the new ones.  Used for imported shapes and legacy boolean shapes that
+        have no stored components.
+        """
+        shape = managed_shape.shape
+
+        # Unapply current translation
+        old_tx = managed_shape.properties.translation.x
+        old_ty = managed_shape.properties.translation.y
+        old_tz = managed_shape.properties.translation.z
+        if old_tx != 0 or old_ty != 0 or old_tz != 0:
+            shape = self._geo_service.translate_shape(shape, -old_tx, -old_ty, -old_tz)
+
+        # Unapply current rotation (reverse order)
+        old_rz = managed_shape.properties.rotation.z
+        old_ry = managed_shape.properties.rotation.y
+        old_rx = managed_shape.properties.rotation.x
+        if old_rz != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 0, 1), -old_rz)
+        if old_ry != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (0, 1, 0), -old_ry)
+        if old_rx != 0:
+            shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (1, 0, 0), -old_rx)
+
+        return self._apply_transformations(shape, new_properties)
 
     def remove_shape(self, shape_id: str) -> bool:
         """
         Remove a shape from management.
+        Component shapes (internal to a boolean operation) cannot be removed
+        individually — remove the parent boolean shape instead.
         
         Args:
             shape_id: ID of the shape to remove
             
         Returns:
-            True if removed, False if not found
+            True if removed, False if not found or if it is a component
         """
-        if shape_id in self._shapes:
-            del self._shapes[shape_id]
-            
-            # Emit signal for observers
-            self.shape_removed.emit(shape_id)
-            return True
-        return False
+        if shape_id not in self._shapes:
+            return False
+
+        managed_shape = self._shapes[shape_id]
+
+        # Components belong to a parent boolean shape and cannot be deleted alone
+        if managed_shape.parent_id is not None:
+            return False
+
+        # Recursively purge component shapes from the registry (no signals)
+        self._remove_component_subtree(managed_shape)
+
+        del self._shapes[shape_id]
+        self.shape_removed.emit(shape_id)
+        return True
+
+    def _remove_component_subtree(self, managed_shape: "ManagedShape") -> None:
+        """Remove all nested component shapes from the registry without emitting signals."""
+        for comp in managed_shape.components:
+            self._remove_component_subtree(comp)
+            self._shapes.pop(comp.shape_id, None)
 
     def get_shape(self, shape_id: str) -> Optional[ManagedShape]:
         """
@@ -273,8 +385,8 @@ class GeometryManager(QObject):
         return self._shapes.get(shape_id)
 
     def get_all_shape_ids(self) -> list[str]:
-        """Get list of all managed shape IDs."""
-        return list(self._shapes.keys())
+        """Get list of all top-level (non-component) managed shape IDs."""
+        return [sid for sid, s in self._shapes.items() if s.parent_id is None]
 
     def clear_all(self):
         """Clear all managed shapes."""
@@ -286,7 +398,8 @@ class GeometryManager(QObject):
     def union_shapes(self, shape_ids: list[str]) -> Optional[str]:
         """
         Perform boolean union on multiple shapes.
-        Creates a new shape and removes the original shapes.
+        The input shapes are kept as internal components of the resulting union;
+        they remain editable and appear in the tree under the union branch.
         
         Args:
             shape_ids: List of shape IDs to union
@@ -296,58 +409,58 @@ class GeometryManager(QObject):
         """
         if len(shape_ids) < 2:
             return None
-        
-        # Get all shapes
-        shapes = [self._shapes[sid] for sid in shape_ids if sid in self._shapes]
+
+        # Only top-level shapes can be used as inputs
+        shapes = [self._shapes[sid] for sid in shape_ids
+                  if sid in self._shapes and self._shapes[sid].parent_id is None]
         if len(shapes) < 2:
             return None
-        
-        # Start with first shape
+
+        # Compute the fused geometry
         result_shape = shapes[0].shape
         result_color = shapes[0].color
-        
-        # Union with remaining shapes
         for managed_shape in shapes[1:]:
             result_shape = self._geo_service.fuse_shapes(result_shape, managed_shape.shape)
             if result_shape is None:
                 return None
-        
-        # Generate new shape ID and name
+
         new_shape_id = self._new_shape_id(ShapeType.UNION)
         result_name = self._generate_shape_name(ShapeType.UNION)
-        
-        # Create managed shape with basic properties (translation/rotation are already applied)   
         properties = ShapeProperties(
             translation=Translation(x=0, y=0, z=0),
             rotation=Rotation(x=0, y=0, z=0)
         )
-        
+
         new_managed_shape = ManagedShape(
             shape_id=new_shape_id,
             shape=result_shape,
             shape_type=ShapeType.UNION,
             name=result_name,
             color=result_color,
-            properties=properties
+            properties=properties,
+            components=shapes,
         )
-        
-        # Remove original shapes
+
+        # Mark every input shape as a component of this union
+        for comp in shapes:
+            comp.parent_id = new_shape_id
+
+        # Remove input shapes from the top-level view (they live under the union now)
         for shape_id in shape_ids:
             if shape_id in self._shapes:
-                del self._shapes[shape_id]
                 self.shape_removed.emit(shape_id)
-        
-        # Add new shape
+
+        # Register and announce the new union shape
         self._shapes[new_shape_id] = new_managed_shape
         self.shape_created.emit(new_shape_id, new_managed_shape)
-        
+
         return new_shape_id
 
     def subtract_shapes(self, shape_ids: list[str]) -> Optional[str]:
         """
-        Perform boolean subtraction on multiple shapes.
-        Subtracts all shapes from the first one.
-        Creates a new shape and removes the original shapes.
+        Perform boolean subtraction on multiple shapes (first minus the rest).
+        The input shapes are kept as internal components of the result;
+        they remain editable and appear in the tree under the subtraction branch.
         
         Args:
             shape_ids: List of shape IDs (first is base, rest are subtracted)
@@ -357,51 +470,51 @@ class GeometryManager(QObject):
         """
         if len(shape_ids) < 2:
             return None
-        
-        # Get all shapes
-        shapes = [self._shapes[sid] for sid in shape_ids if sid in self._shapes]
+
+        # Only top-level shapes can be used as inputs
+        shapes = [self._shapes[sid] for sid in shape_ids
+                  if sid in self._shapes and self._shapes[sid].parent_id is None]
         if len(shapes) < 2:
             return None
-        
-        # Start with first shape as base
+
+        # Compute the cut geometry
         result_shape = shapes[0].shape
         result_color = shapes[0].color
-        
-        # Subtract remaining shapes
         for managed_shape in shapes[1:]:
             result_shape = self._geo_service.cut_shapes(result_shape, managed_shape.shape)
             if result_shape is None:
                 return None
-        
-        # Generate new shape ID and name
+
         new_shape_id = self._new_shape_id(ShapeType.SUBTRACTION)
         result_name = self._generate_shape_name(ShapeType.SUBTRACTION)
-        
-        # Create managed shape with basic properties
         properties = ShapeProperties(
             translation=Translation(x=0, y=0, z=0),
             rotation=Rotation(x=0, y=0, z=0)
         )
-        
+
         new_managed_shape = ManagedShape(
             shape_id=new_shape_id,
             shape=result_shape,
             shape_type=ShapeType.SUBTRACTION,
             name=result_name,
             color=result_color,
-            properties=properties
+            properties=properties,
+            components=shapes,
         )
-        
-        # Remove original shapes
+
+        # Mark every input shape as a component of this subtraction
+        for comp in shapes:
+            comp.parent_id = new_shape_id
+
+        # Remove input shapes from the top-level view (they live under the subtraction now)
         for shape_id in shape_ids:
             if shape_id in self._shapes:
-                del self._shapes[shape_id]
                 self.shape_removed.emit(shape_id)
-        
-        # Add new shape
+
+        # Register and announce the new subtraction shape
         self._shapes[new_shape_id] = new_managed_shape
         self.shape_created.emit(new_shape_id, new_managed_shape)
-        
+
         return new_shape_id
 
     def _apply_transformations(

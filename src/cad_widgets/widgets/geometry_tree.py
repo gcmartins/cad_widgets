@@ -95,6 +95,33 @@ class GeometryTreeWidget(QWidget):
         
         layout.addWidget(self.tree)
         
+    def _create_tree_item(
+        self,
+        shape_id: str,
+        shape_type: str,
+        name: str,
+        is_component: bool = False,
+    ) -> QTreeWidgetItem:
+        """
+        Create a QTreeWidgetItem for a shape.
+
+        Top-level shapes get a visibility checkbox; component shapes (children
+        of a boolean operation) are selectable but have no checkbox because
+        they are not independent viewer entities.
+        """
+        item = QTreeWidgetItem([name, shape_type])
+        item.setData(0, Qt.ItemDataRole.UserRole, shape_id)
+
+        if is_component:
+            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
+        else:
+            item.setFlags(
+                item.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsSelectable
+            )
+            item.setCheckState(0, Qt.CheckState.Checked)
+
+        return item
+
     def add_shape(
         self,
         shape_id: str,
@@ -118,40 +145,37 @@ class GeometryTreeWidget(QWidget):
         if name is None:
             self._shape_counter += 1
             name = f"{shape_type} {self._shape_counter}"
-        
-        # Create tree item
-        item = QTreeWidgetItem([name, shape_type])
-        
-        # Set checkable
-        item.setFlags(
-            item.flags() | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsSelectable
-        )
-        item.setCheckState(0, Qt.CheckState.Checked)
-        
-        # Store shape_id in item data
-        item.setData(0, Qt.ItemDataRole.UserRole, shape_id)
-        
-        # Add to tree
+
+        item = self._create_tree_item(shape_id, shape_type, name)
         self.tree.addTopLevelItem(item)
-        
-        # Store reference
         self._shapes[shape_id] = item
-        
+
         return shape_id
         
     def remove_shape(self, shape_id: str):
         """
         Remove a shape from the tree.
+        Also unregisters any component child items from the internal mapping.
         
         Args:
             shape_id: ID of the shape to remove
         """
-        if shape_id in self._shapes:
-            item = self._shapes[shape_id]
-            index = self.tree.indexOfTopLevelItem(item)
-            if index >= 0:
-                self.tree.takeTopLevelItem(index)
-            del self._shapes[shape_id]
+        if shape_id not in self._shapes:
+            return
+
+        item = self._shapes[shape_id]
+
+        # Unregister all child (component) items from the internal map
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child_id = child.data(0, Qt.ItemDataRole.UserRole)
+            if child_id:
+                self._shapes.pop(child_id, None)
+
+        index = self.tree.indexOfTopLevelItem(item)
+        if index >= 0:
+            self.tree.takeTopLevelItem(index)
+        del self._shapes[shape_id]
             
     def clear_all(self):
         """Clear all shapes from the tree."""
@@ -161,12 +185,17 @@ class GeometryTreeWidget(QWidget):
         
     def get_shape_ids(self) -> List[str]:
         """
-        Get list of all shape IDs in the tree.
+        Get list of all top-level shape IDs in the tree.
+        Component shapes (children of a boolean operation) are excluded.
         
         Returns:
             List of shape IDs
         """
-        return list(self._shapes.keys())
+        return [
+            shape_id
+            for shape_id, item in self._shapes.items()
+            if item.parent() is None
+        ]
         
     def is_shape_visible(self, shape_id: str) -> bool:
         """
@@ -223,12 +252,13 @@ class GeometryTreeWidget(QWidget):
     def _on_item_changed(self, item: QTreeWidgetItem, column: int):
         """
         Handle item changed event (checkbox toggled).
+        Only fires for top-level shapes; component items have no checkbox.
         
         Args:
             item: The changed item
             column: The changed column
         """
-        if column == 0:  # Name column with checkbox
+        if column == 0 and item.parent() is None:  # only top-level items have checkboxes
             shape_id = item.data(0, Qt.ItemDataRole.UserRole)
             if shape_id:
                 visible = item.checkState(0) == Qt.CheckState.Checked
@@ -264,14 +294,14 @@ class GeometryTreeWidget(QWidget):
             position: Position where the context menu was requested
         """
         menu = QMenu(self)
-        
-        # Get selected shape IDs
+
+        # Only top-level (non-component) items are eligible for delete/boolean ops
         selected_shape_ids = [
             item.data(0, Qt.ItemDataRole.UserRole)
             for item in self.tree.selectedItems()
-            if item.data(0, Qt.ItemDataRole.UserRole)
+            if item.data(0, Qt.ItemDataRole.UserRole) and item.parent() is None
         ]
-        
+
         num_selected = len(selected_shape_ids)
         
         # Actions when shapes are selected
@@ -339,12 +369,25 @@ class GeometryTreeWidget(QWidget):
             shape_id: ID of the created shape
             managed_shape: ManagedShape object
         """
-        # Add to tree
-        self.add_shape(
-            shape_id,
-            shape_type=managed_shape.shape_type.value,
-            name=managed_shape.name
+        item = self._create_tree_item(
+            shape_id, managed_shape.shape_type.value, managed_shape.name
         )
+        self.tree.addTopLevelItem(item)
+        self._shapes[shape_id] = item
+
+        # Add component shapes as children (union / subtraction internals)
+        for component in managed_shape.components:
+            child_item = self._create_tree_item(
+                component.shape_id,
+                component.shape_type.value,
+                component.name,
+                is_component=True,
+            )
+            item.addChild(child_item)
+            self._shapes[component.shape_id] = child_item
+
+        if managed_shape.components:
+            item.setExpanded(True)
     
     def on_shape_updated(self, shape_id: str, managed_shape):
         """
