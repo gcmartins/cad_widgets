@@ -4,7 +4,8 @@ Handles shape creation and management operations
 Provides high-level API for creating and manipulating 3D shapes
 """
 
-from typing import Optional, Tuple
+import logging
+from typing import Optional, Tuple, Protocol, runtime_checkable
 from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeBox,
     BRepPrimAPI_MakeSphere,
@@ -20,6 +21,30 @@ from OCP.STEPControl import STEPControl_Writer, STEPControl_Reader, STEPControl_
 from OCP.IGESControl import IGESControl_Writer, IGESControl_Reader
 from OCP.IFSelect import IFSelect_ReturnStatus
 from OCP.Interface import Interface_Static
+
+logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class GeometryServiceProtocol(Protocol):
+    """Structural interface for geometry operations.
+
+    Allows injecting alternative implementations (e.g. mocks in tests)
+    into GeometryManager without changing any production callsite.
+    """
+
+    def create_box(self, width: float, height: float, depth: float, position: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
+    def create_sphere(self, radius: float, center: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...
+    def create_cylinder(self, radius: float, height: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
+    def create_cone(self, radius1: float, radius2: float, height: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
+    def create_torus(self, major_radius: float, minor_radius: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
+    def translate_shape(self, shape: "TopoDS_Shape", dx: float, dy: float, dz: float) -> "TopoDS_Shape": ...
+    def rotate_shape(self, shape: "TopoDS_Shape", axis_point: Tuple[float, float, float], axis_direction: Tuple[float, float, float], angle_degrees: float) -> "TopoDS_Shape": ...  # noqa: E501
+    def fuse_shapes(self, shape1: "TopoDS_Shape", shape2: "TopoDS_Shape") -> Optional["TopoDS_Shape"]: ...
+    def cut_shapes(self, shape1: "TopoDS_Shape", shape2: "TopoDS_Shape") -> Optional["TopoDS_Shape"]: ...
+    def import_file(self, filename: str) -> Optional["TopoDS_Shape"]: ...
+    def export_shapes_to_step(self, shapes: list, filename: str) -> bool: ...
+    def export_shapes_to_iges(self, shapes: list, filename: str) -> bool: ...
 
 
 class GeometryService:

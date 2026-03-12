@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from PySide6.QtCore import QObject, Signal
 
 from ..services import GeometryService
+from ..services.geometry_service import GeometryServiceProtocol
 from ..enums import ShapeType
 from ..models.shape_properties import (
     ShapeProperties,
@@ -62,11 +63,11 @@ class GeometryManager(QObject):
     shape_removed = Signal(str)  # shape_id
     all_cleared = Signal()
 
-    def __init__(self):
+    def __init__(self, geo_service: Optional[GeometryServiceProtocol] = None):
         """Initialize the geometry manager."""
         super().__init__()
         self._shapes: Dict[str, ManagedShape] = {}
-        self._geo_service = GeometryService()
+        self._geo_service: GeometryServiceProtocol = geo_service if geo_service is not None else GeometryService()
 
     def _new_shape_id(self, shape_type: ShapeType) -> str:
         """Generate a new unique shape ID based on shape type."""
@@ -604,6 +605,15 @@ class GeometryManager(QObject):
 
         return shape
 
+    _PROPERTIES_CLASS: Dict[ShapeType, type] = {
+        ShapeType.BOX: BoxProperties,
+        ShapeType.SPHERE: SphereProperties,
+        ShapeType.CYLINDER: CylinderProperties,
+        ShapeType.CONE: ConeProperties,
+        ShapeType.TORUS: TorusProperties,
+        ShapeType.IMPORTED: ImportedProperties,
+    }
+
     @staticmethod
     def create_properties_for_type(
         shape_type: ShapeType,
@@ -611,28 +621,16 @@ class GeometryManager(QObject):
     ) -> ShapeProperties:
         """
         Create appropriate properties object for a shape type.
-        
+
         Args:
             shape_type: Type of shape (ShapeType enum)
             **kwargs: Property values
-            
+
         Returns:
             ShapeProperties subclass instance
         """
-        if shape_type == ShapeType.BOX:
-            return BoxProperties(**kwargs)
-        elif shape_type == ShapeType.SPHERE:
-            return SphereProperties(**kwargs)
-        elif shape_type == ShapeType.CYLINDER:
-            return CylinderProperties(**kwargs)
-        elif shape_type == ShapeType.CONE:
-            return ConeProperties(**kwargs)
-        elif shape_type == ShapeType.TORUS:
-            return TorusProperties(**kwargs)
-        elif shape_type == ShapeType.IMPORTED:
-            return ImportedProperties(**kwargs)
-        else:
-            return ShapeProperties(**kwargs)
+        cls = GeometryManager._PROPERTIES_CLASS.get(shape_type, ShapeProperties)
+        return cls(**kwargs)
 
     @staticmethod
     def properties_from_dict(
@@ -641,28 +639,16 @@ class GeometryManager(QObject):
     ) -> ShapeProperties:
         """
         Create properties from dictionary.
-        
+
         Args:
             shape_type: Type of shape (ShapeType enum)
             data: Dictionary with property values
-            
+
         Returns:
             ShapeProperties subclass instance
         """
-        if shape_type == ShapeType.BOX:
-            return BoxProperties.from_dict(data)
-        elif shape_type == ShapeType.SPHERE:
-            return SphereProperties.from_dict(data)
-        elif shape_type == ShapeType.CYLINDER:
-            return CylinderProperties.from_dict(data)
-        elif shape_type == ShapeType.CONE:
-            return ConeProperties.from_dict(data)
-        elif shape_type == ShapeType.TORUS:
-            return TorusProperties.from_dict(data)
-        elif shape_type == ShapeType.IMPORTED:
-            return ImportedProperties.from_dict(data)
-        else:
-            return ShapeProperties.from_dict(data)
+        cls = GeometryManager._PROPERTIES_CLASS.get(shape_type, ShapeProperties)
+        return cls.from_dict(data)
         
     def export_shapes_to_iges(self, filename: str) -> bool:
         shape_ids = self.get_all_shape_ids()
