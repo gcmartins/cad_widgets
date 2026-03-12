@@ -17,20 +17,16 @@ from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
 
 class ShapeInfo:
     """Information about a displayed shape."""
-    
+
     def __init__(
         self,
         shape_id: str,
         ais_shape: AIS_Shape,
-        shape_type: str = "Shape",
-        name: Optional[str] = None,
         color: Optional[Tuple[float, float, float]] = None,
         visible: bool = True,
     ):
         self.shape_id = shape_id
         self.ais_shape = ais_shape
-        self.shape_type = shape_type
-        self.name = name
         self.color = color
         self.visible = visible
 
@@ -332,8 +328,6 @@ class ViewService:
             shape_info = ShapeInfo(
                 shape_id=shape_id,
                 ais_shape=ais_shape,
-                shape_type=shape_type,
-                name=name,
                 color=color,
                 visible=True,
             )
