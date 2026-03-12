@@ -9,7 +9,7 @@ from .widgets.selection_toolbar import SelectionToolbar
 from .widgets.geometry_tree import GeometryTreeWidget
 from .widgets.property_editor import PropertyEditorWidget
 from .enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode, ShapeType
-from .services import SelectionService, ViewService, GeometryService
+from .services import SelectionService, ViewService, GeometryService, GeometryServiceProtocol
 from .services.view_service import ShapeInfo
 from .managers import GeometryManager, ManagedShape
 from .models import (

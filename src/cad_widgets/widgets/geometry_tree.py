@@ -392,13 +392,18 @@ class GeometryTreeWidget(QWidget):
     def on_shape_updated(self, shape_id: str, managed_shape):
         """
         Handle shape update from geometry manager.
-        
+
         Args:
             shape_id: ID of the updated shape
             managed_shape: ManagedShape object with updated data
         """
-        # Properties are no longer displayed in the tree
-        pass
+        if shape_id not in self._shapes:
+            return
+        item = self._shapes[shape_id]
+        self.tree.blockSignals(True)
+        item.setText(0, managed_shape.name)
+        item.setText(1, managed_shape.shape_type.value)
+        self.tree.blockSignals(False)
     
     def on_shape_removed(self, shape_id: str):
         """

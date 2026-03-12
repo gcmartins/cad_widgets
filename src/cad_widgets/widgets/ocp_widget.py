@@ -9,6 +9,7 @@ Features:
 - Platform-specific window integration (X11/Windows/macOS)
 """
 
+import logging
 from typing import Optional
 
 from PySide6.QtWidgets import QWidget
@@ -24,6 +25,8 @@ from cad_widgets.managers.geometry_manager import ManagedShape
 
 from ..enums import ViewDirection, ProjectionType, DisplayMode, SelectionMode
 from ..services import SelectionService, ViewService
+
+logger = logging.getLogger(__name__)
 
 # Platform-specific window imports
 if sys.platform == "win32":
@@ -91,10 +94,7 @@ class OCPWidget(QWidget):
             self._context = AIS_InteractiveContext(self._viewer)
 
         except Exception as e:
-            print(f"Error initializing viewer: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.error("Error initializing viewer: %s", e, exc_info=True)
 
     def showEvent(self, event):
         """Trigger OCC window setup the first time the widget is shown."""
@@ -116,6 +116,9 @@ class OCPWidget(QWidget):
                 # Setup initial view parameters
                 self._view_service.setup_initial_view()
 
+                # Configure selection colours now that the view is mapped
+                self._selection_service.configure_selection_colors()
+
                 # Fit all objects
                 self.fit_all()
 
@@ -123,7 +126,7 @@ class OCPWidget(QWidget):
                 QTimer.singleShot(0, self._sync_viewport)
 
             except Exception as e:
-                print(f"Error setting up view: {e}")
+                logger.error("Error setting up view: %s", e, exc_info=True)
 
     def _sync_viewport(self):
         """Re-sync the OCC viewport after Qt has finished settling the layout."""
@@ -164,10 +167,7 @@ class OCPWidget(QWidget):
                 occ_window.Map()
 
         except Exception as e:
-            print(f"Error creating OCC window: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.error("Error creating OCC window: %s", e, exc_info=True)
 
     def display_shape(
         self,
@@ -564,25 +564,22 @@ class OCPWidget(QWidget):
     def on_shape_updated(self, shape_id: str, managed_shape: ManagedShape):
         """
         Handle shape update from geometry manager.
-        
+
         Args:
             shape_id: ID of the updated shape
             managed_shape: ManagedShape object with updated data
         """
-        # Remove old shape
         self.erase_shape(shape_id)
-        
-        # Display updated shape
-        self.display_shape(
+        result = self.display_shape(
             managed_shape.shape,
             color=managed_shape.color,
             update=True,
             shape_type=managed_shape.shape_type.value,
             name=managed_shape.name,
-            shape_id=shape_id
+            shape_id=shape_id,
         )
-        
-        # Fit view to show changes
+        if result is None:
+            logger.warning("ViewService failed to redisplay shape %s after update", shape_id)
         self.fit_all()
     
     def on_shape_removed(self, shape_id: str):

@@ -3,6 +3,7 @@ Selection Service
 Handles all selection-related operations for OCP viewer
 """
 
+import logging
 from typing import List
 from OCP.AIS import AIS_InteractiveContext
 from OCP.V3d import V3d_View
@@ -10,6 +11,8 @@ from OCP.Quantity import Quantity_Color, Quantity_NOC_RED, Quantity_NOC_CYAN1
 from OCP.Prs3d import Prs3d_TypeOfHighlight
 
 from cad_widgets.enums import SelectionMode
+
+logger = logging.getLogger(__name__)
 
 
 class SelectionService:
@@ -25,9 +28,8 @@ class SelectionService:
         self._context = context
         self._selection_enabled = True
         self._selection_mode = SelectionMode.VOLUME
-        self._configure_selection_colors()
 
-    def _configure_selection_colors(self):
+    def configure_selection_colors(self):
         """Configure stronger highlight and selection colors."""
         try:
             red_color = Quantity_Color(Quantity_NOC_RED)
@@ -57,7 +59,7 @@ class SelectionService:
             self._context.SetToHilightSelected(True)
 
         except Exception as e:
-            print(f"Error configuring selection colors: {e}")
+            logger.error("Error configuring selection colors: %s", e, exc_info=True)
 
     def set_mode(self, mode: SelectionMode):
         """
@@ -87,10 +89,10 @@ class SelectionService:
                 self._context.Activate(shape_type, True)
                 
             # Reconfigure colors after mode change to ensure consistency
-            self._configure_selection_colors()
+            self.configure_selection_colors()
 
         except Exception as e:
-            print(f"Error setting selection mode: {e}")
+            logger.error("Error setting selection mode: %s", e, exc_info=True)
 
     def set_enabled(self, enabled: bool):
         """
@@ -111,14 +113,14 @@ class SelectionService:
                 # Clear any existing selection
                 self._context.ClearSelected(True)
         except Exception as e:
-            print(f"Error setting selection enabled: {e}")
+            logger.error("Error setting selection enabled: %s", e, exc_info=True)
 
     def clear(self):
         """Clear all selected entities."""
         try:
             self._context.ClearSelected(True)
         except Exception as e:
-            print(f"Error clearing selection: {e}")
+            logger.error("Error clearing selection: %s", e, exc_info=True)
 
     def move_to(self, x: int, y: int, view: V3d_View, update: bool = True):
         """
@@ -133,7 +135,7 @@ class SelectionService:
         try:
             self._context.MoveTo(x, y, view, update)
         except Exception as e:
-            print(f"Error in move to: {e}")
+            logger.error("Error in move_to: %s", e, exc_info=True)
 
     def select(self, x: int, y: int, view: V3d_View, replace: bool = True):
         """
@@ -155,7 +157,7 @@ class SelectionService:
             else:
                 self._context.ShiftSelect(True)
         except Exception as e:
-            print(f"Error handling selection: {e}")
+            logger.error("Error handling selection: %s", e, exc_info=True)
 
     def get_selected_shapes(self) -> List:
         """
@@ -171,7 +173,7 @@ class SelectionService:
                 selected.append(self._context.SelectedInteractive())
                 self._context.NextSelected()
         except Exception as e:
-            print(f"Error getting selected shapes: {e}")
+            logger.error("Error getting selected shapes: %s", e, exc_info=True)
 
         return selected
 

@@ -2,8 +2,9 @@
 Shape property classes for structured data handling
 """
 
+import dataclasses
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import ClassVar, Dict, Any
 
 
 @dataclass
@@ -54,37 +55,58 @@ class ShapeProperties:
     translation: Translation = field(default_factory=Translation)
     rotation: Rotation = field(default_factory=Rotation)
 
+    # ClassVar fields are excluded from dataclasses.fields() automatically.
+    _SKIP_FIELDS: ClassVar[frozenset] = frozenset({"translation", "rotation"})
+    # Subclasses override this to customise display labels for their fields.
+    _display_fields: ClassVar[Dict[str, str]] = {}
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for UI consumption."""
-        return {
+        """Convert to dictionary."""
+        result: Dict[str, Any] = {
             "translation": self.translation.to_dict(),
             "rotation": self.rotation.to_dict(),
         }
+        for f in dataclasses.fields(self):
+            if f.name not in self._SKIP_FIELDS:
+                result[f.name] = getattr(self, f.name)
+        return result
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ShapeProperties":
         """Create from dictionary."""
-        return cls(
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
+        kwargs: Dict[str, Any] = {
+            "translation": Translation.from_dict(data.get("translation", {})),
+            "rotation": Rotation.from_dict(data.get("rotation", {})),
+        }
+        for f in dataclasses.fields(cls):
+            if f.name not in cls._SKIP_FIELDS:
+                default = (
+                    f.default
+                    if f.default is not dataclasses.MISSING
+                    else f.default_factory()  # type: ignore[misc]
+                )
+                kwargs[f.name] = data.get(f.name, default)
+        return cls(**kwargs)
 
     def get_formatted_properties(self) -> Dict[str, str]:
         """Get formatted properties for display in tree."""
-        formatted = {}
-        
-        # Add position if non-zero
+        formatted: Dict[str, str] = {}
+
         if any([self.translation.x, self.translation.y, self.translation.z]):
             formatted["Position"] = (
                 f"({self.translation.x:.1f}, {self.translation.y:.1f}, {self.translation.z:.1f})"
             )
-        
-        # Add rotation if non-zero
+
         if any([self.rotation.x, self.rotation.y, self.rotation.z]):
             formatted["Rotation"] = (
                 f"({self.rotation.x:.1f}°, {self.rotation.y:.1f}°, {self.rotation.z:.1f}°)"
             )
-        
+
+        for f in dataclasses.fields(self):
+            if f.name not in self._SKIP_FIELDS:
+                label = self._display_fields.get(f.name, f.name.replace("_", " ").title())
+                formatted[label] = f"{getattr(self, f.name):.2f}"
+
         return formatted
 
 
@@ -95,63 +117,11 @@ class BoxProperties(ShapeProperties):
     height: float = 50.0
     depth: float = 50.0
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        result = super().to_dict()
-        result.update({
-            "width": self.width,
-            "height": self.height,
-            "depth": self.depth,
-        })
-        return result
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BoxProperties":
-        """Create from dictionary."""
-        return cls(
-            width=data.get("width", 50.0),
-            height=data.get("height", 50.0),
-            depth=data.get("depth", 50.0),
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
-
-    def get_formatted_properties(self) -> Dict[str, str]:
-        """Get formatted properties for display."""
-        formatted = super().get_formatted_properties()
-        formatted.update({
-            "Width": f"{self.width:.2f}",
-            "Height": f"{self.height:.2f}",
-            "Depth": f"{self.depth:.2f}",
-        })
-        return formatted
-
 
 @dataclass
 class SphereProperties(ShapeProperties):
     """Properties for sphere shapes."""
     radius: float = 30.0
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        result = super().to_dict()
-        result["radius"] = self.radius
-        return result
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SphereProperties":
-        """Create from dictionary."""
-        return cls(
-            radius=data.get("radius", 30.0),
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
-
-    def get_formatted_properties(self) -> Dict[str, str]:
-        """Get formatted properties for display."""
-        formatted = super().get_formatted_properties()
-        formatted["Radius"] = f"{self.radius:.2f}"
-        return formatted
 
 
 @dataclass
@@ -160,72 +130,18 @@ class CylinderProperties(ShapeProperties):
     radius: float = 20.0
     height: float = 60.0
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        result = super().to_dict()
-        result.update({
-            "radius": self.radius,
-            "height": self.height,
-        })
-        return result
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CylinderProperties":
-        """Create from dictionary."""
-        return cls(
-            radius=data.get("radius", 20.0),
-            height=data.get("height", 60.0),
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
-
-    def get_formatted_properties(self) -> Dict[str, str]:
-        """Get formatted properties for display."""
-        formatted = super().get_formatted_properties()
-        formatted.update({
-            "Radius": f"{self.radius:.2f}",
-            "Height": f"{self.height:.2f}",
-        })
-        return formatted
-
 
 @dataclass
 class ConeProperties(ShapeProperties):
     """Properties for cone shapes."""
-    base_radius: float = 30.0  # Base radius
-    top_radius: float = 10.0  # Top radius
+    base_radius: float = 30.0
+    top_radius: float = 10.0
     height: float = 70.0
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        result = super().to_dict()
-        result.update({
-            "base_radius": self.base_radius,
-            "top_radius": self.top_radius,
-            "height": self.height,
-        })
-        return result
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ConeProperties":
-        """Create from dictionary."""
-        return cls(
-            base_radius=data.get("base_radius", 30.0),
-            top_radius=data.get("top_radius", 10.0),
-            height=data.get("height", 70.0),
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
-
-    def get_formatted_properties(self) -> Dict[str, str]:
-        """Get formatted properties for display."""
-        formatted = super().get_formatted_properties()
-        formatted.update({
-            "Base Radius": f"{self.base_radius:.2f}",
-            "Top Radius": f"{self.top_radius:.2f}",
-            "Height": f"{self.height:.2f}",
-        })
-        return formatted
+    _display_fields: ClassVar[Dict[str, str]] = {
+        "base_radius": "Base Radius",
+        "top_radius": "Top Radius",
+    }
 
 
 @dataclass
@@ -234,50 +150,16 @@ class TorusProperties(ShapeProperties):
     major_radius: float = 25.0
     minor_radius: float = 10.0  # tube radius
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        result = super().to_dict()
-        result.update({
-            "major_radius": self.major_radius,
-            "minor_radius": self.minor_radius,
-        })
-        return result
+    _display_fields: ClassVar[Dict[str, str]] = {
+        "major_radius": "Major Radius",
+        "minor_radius": "Minor Radius",
+    }
 
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "TorusProperties":
-        """Create from dictionary."""
-        return cls(
-            major_radius=data.get("major_radius", 25.0),
-            minor_radius=data.get("minor_radius", 10.0),
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
-
-    def get_formatted_properties(self) -> Dict[str, str]:
-        """Get formatted properties for display."""
-        formatted = super().get_formatted_properties()
-        formatted.update({
-            "Major Radius": f"{self.major_radius:.2f}",
-            "Minor Radius": f"{self.minor_radius:.2f}",
-        })
-        return formatted
 
 @dataclass
 class ImportedProperties(ShapeProperties):
     """Properties for imported shapes (STEP, IGES, etc.).
-    
+
     Imported shapes have no editable size parameters,
     only translation and rotation transformations.
     """
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary."""
-        return super().to_dict()
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ImportedProperties":
-        """Create from dictionary."""
-        return cls(
-            translation=Translation.from_dict(data.get("translation", {})),
-            rotation=Rotation.from_dict(data.get("rotation", {})),
-        )
