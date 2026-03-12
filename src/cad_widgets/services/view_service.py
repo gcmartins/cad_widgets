@@ -3,6 +3,7 @@ View Service
 Handles all view-related operations and geometry display for OCP viewer
 """
 
+import logging
 from typing import Optional, Tuple, Dict
 from OCP.V3d import V3d_View, V3d_Viewer, V3d_TypeOfVisualization
 from OCP.Aspect import Aspect_GradientFillMethod, Aspect_TypeOfTriedronPosition
@@ -13,6 +14,8 @@ from OCP.Prs3d import Prs3d_LineAspect
 from OCP.Aspect import Aspect_TOL_SOLID
 
 from cad_widgets.enums import ViewDirection, ProjectionType, DisplayMode
+
+logger = logging.getLogger(__name__)
 
 
 class ShapeInfo:
@@ -78,7 +81,7 @@ class ViewService:
             self.set_projection_type(ProjectionType.ORTHOGRAPHIC)
 
         except Exception as e:
-            print(f"Error setting up initial view: {e}")
+            logger.error("Error setting up initial view: %s", e, exc_info=True)
 
     def _setup_trihedron(self):
         """Setup the trihedron (axis indicator)."""
@@ -101,9 +104,9 @@ class ViewService:
                     0.08,
                 )
             except Exception as e:
-                print(f"Could not display trihedron: {e}")
+                logger.debug("Could not display trihedron: %s", e)
         except Exception as e:
-            print(f"Unexpected trihedron error: {e}")
+            logger.warning("Unexpected trihedron error: %s", e, exc_info=True)
 
     def set_projection(self, direction: ViewDirection):
         """
@@ -135,7 +138,7 @@ class ViewService:
                 self._view.SetProj(1, 1, 1)
                 self._view.SetUp(0, 0, 1)  # Z-axis up for iso view
         except Exception as e:
-            print(f"Error setting projection: {e}")
+            logger.error("Error setting projection: %s", e, exc_info=True)
 
     def set_projection_type(self, projection_type: ProjectionType):
         """
@@ -160,9 +163,9 @@ class ViewService:
                 proj_value = 1 if projection_type == ProjectionType.ORTHOGRAPHIC else 0
                 self._view.Camera().SetProjectionType(proj_value)
             except Exception as e:
-                print(f"Could not set projection type: {e}")
+                logger.debug("Could not set projection type: %s", e)
         except Exception as e:
-            print(f"Error setting projection type: {e}")
+            logger.error("Error setting projection type: %s", e, exc_info=True)
 
     def fit_all(self):
         """Fit all displayed objects in the view."""
@@ -170,7 +173,7 @@ class ViewService:
             self._view.FitAll()
             self._view.ZFitAll()
         except Exception as e:
-            print(f"Error fitting view: {e}")
+            logger.error("Error fitting view: %s", e, exc_info=True)
 
     def redraw(self):
         """Redraw the view."""
@@ -181,14 +184,14 @@ class ViewService:
                 self._is_rendering = False
             except Exception as e:
                 self._is_rendering = False
-                print(f"Error in redraw: {e}")
+                logger.error("Error in redraw: %s", e, exc_info=True)
 
     def must_be_resized(self):
         """Notify view that it must be resized."""
         try:
             self._view.MustBeResized()
         except Exception as e:
-            print(f"Error resizing view: {e}")
+            logger.error("Error resizing view: %s", e, exc_info=True)
 
     def start_rotation(self, x: int, y: int):
         """
@@ -201,7 +204,7 @@ class ViewService:
         try:
             self._view.StartRotation(x, y)
         except Exception as e:
-            print(f"Error starting rotation: {e}")
+            logger.error("Error starting rotation: %s", e, exc_info=True)
 
     def rotate(self, x: int, y: int):
         """
@@ -214,7 +217,7 @@ class ViewService:
         try:
             self._view.Rotation(x, y)
         except Exception as e:
-            print(f"Error rotating: {e}")
+            logger.error("Error rotating: %s", e, exc_info=True)
 
     def pan(self, dx: int, dy: int):
         """
@@ -227,7 +230,7 @@ class ViewService:
         try:
             self._view.Pan(dx, -dy)
         except Exception as e:
-            print(f"Error panning: {e}")
+            logger.error("Error panning: %s", e, exc_info=True)
 
     def zoom(self, factor: float):
         """
@@ -239,7 +242,7 @@ class ViewService:
         try:
             self._view.SetZoom(factor)
         except Exception as e:
-            print(f"Error zooming: {e}")
+            logger.error("Error zooming: %s", e, exc_info=True)
 
     def get_view(self) -> V3d_View:
         """Get the V3d view."""
@@ -291,11 +294,11 @@ class ViewService:
 
         Args:
             shape: OCP TopoDS_Shape object
+            shape_id: Specific ID for the shape
             color: Tuple of RGB values (0-1) or None for default
             update: Whether to update the display
-            shape_type: Type of shape (Box, Sphere, etc.) for identification
-            name: Optional name for the shape
-            shape_id: Optional specific ID for the shape (auto-generated if None)
+            shape_type: Unused, kept for API compatibility
+            name: Unused, kept for API compatibility
 
         Returns:
             str: Shape ID or None if error
@@ -336,7 +339,7 @@ class ViewService:
             return shape_id
 
         except Exception as e:
-            print(f"Error displaying shape: {e}")
+            logger.error("Error displaying shape: %s", e, exc_info=True)
             return None
 
     def set_display_mode(self, mode: DisplayMode):
@@ -373,7 +376,7 @@ class ViewService:
                     self._context.Redisplay(shape_info.ais_shape, False)
             self._context.UpdateCurrentViewer()
         except Exception as e:
-            print(f"Error setting display mode: {e}")
+            logger.error("Error setting display mode: %s", e, exc_info=True)
 
     def erase_all(self):
         """Remove all shapes from the display."""
@@ -381,7 +384,7 @@ class ViewService:
             self._context.RemoveAll(True)
             self._shapes.clear()
         except Exception as e:
-            print(f"Error erasing all shapes: {e}")
+            logger.error("Error erasing all shapes: %s", e, exc_info=True)
 
     def erase_shape(self, shape_id: str, update: bool = True):
         """
@@ -397,7 +400,7 @@ class ViewService:
                 self._context.Remove(shape_info.ais_shape, update)
                 del self._shapes[shape_id]
         except Exception as e:
-            print(f"Error erasing shape: {e}")
+            logger.error("Error erasing shape: %s", e, exc_info=True)
 
     def update_shape(self, ais_shape: AIS_Shape, update: bool = True):
         """
@@ -410,7 +413,7 @@ class ViewService:
         try:
             self._context.Redisplay(ais_shape, update)
         except Exception as e:
-            print(f"Error updating shape: {e}")
+            logger.error("Error updating shape: %s", e, exc_info=True)
 
     def set_shape_color(
         self,
@@ -433,7 +436,7 @@ class ViewService:
             if update:
                 self._context.Redisplay(ais_shape, True)
         except Exception as e:
-            print(f"Error setting shape color: {e}")
+            logger.error("Error setting shape color: %s", e, exc_info=True)
 
     def set_background_color(self, color: tuple[float, float, float]):
         """
@@ -448,7 +451,7 @@ class ViewService:
             self._view.SetBackgroundColor(Quantity_Color(*color, Quantity_TOC_RGB))
             self._view.Redraw()
         except Exception as e:
-            print(f"Error setting background color: {e}")
+            logger.error("Error setting background color: %s", e, exc_info=True)
 
     def set_background_gradient(
         self,
@@ -474,7 +477,7 @@ class ViewService:
             )
             self._view.Redraw()
         except Exception as e:
-            print(f"Error setting background gradient: {e}")
+            logger.error("Error setting background gradient: %s", e, exc_info=True)
 
     def set_global_transparency(self, transparency: float, update: bool = True):
         """
@@ -498,7 +501,7 @@ class ViewService:
                 # Single update after all changes
                 self._context.UpdateCurrentViewer()
         except Exception as e:
-            print(f"Error setting global transparency: {e}")
+            logger.error("Error setting global transparency: %s", e, exc_info=True)
 
     # Shape registry methods
 
@@ -542,7 +545,7 @@ class ViewService:
                     self._context.Erase(shape_info.ais_shape, update)
                     shape_info.visible = False
         except Exception as e:
-            print(f"Error setting shape visibility: {e}")
+            logger.error("Error setting shape visibility: %s", e, exc_info=True)
 
     def is_shape_visible(self, shape_id: str) -> bool:
         """

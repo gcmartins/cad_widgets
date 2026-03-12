@@ -265,7 +265,7 @@ class GeometryService:
             if fuse.IsDone():
                 return fuse.Shape()
         except Exception as e:
-            print(f"Error fusing shapes: {e}")
+            logger.error("Error fusing shapes: %s", e, exc_info=True)
         return None
 
     @staticmethod
@@ -288,7 +288,7 @@ class GeometryService:
             if cut.IsDone():
                 return cut.Shape()
         except Exception as e:
-            print(f"Error cutting shapes: {e}")
+            logger.error("Error cutting shapes: %s", e, exc_info=True)
         return None
 
     @staticmethod
@@ -311,7 +311,7 @@ class GeometryService:
             if common.IsDone():
                 return common.Shape()
         except Exception as e:
-            print(f"Error intersecting shapes: {e}")
+            logger.error("Error intersecting shapes: %s", e, exc_info=True)
         return None
 
     @staticmethod
@@ -340,7 +340,7 @@ class GeometryService:
             
             return status == IFSelect_ReturnStatus.IFSelect_RetDone
         except Exception as e:
-            print(f"Error exporting STEP file: {e}")
+            logger.error("Error exporting STEP file: %s", e, exc_info=True)
             return False
 
     @staticmethod
@@ -360,7 +360,7 @@ class GeometryService:
             status = reader.ReadFile(filename)
             
             if status != IFSelect_ReturnStatus.IFSelect_RetDone:
-                print(f"Error reading {file_type} file: {filename}")
+                logger.error("Error reading %s file: %s", file_type, filename)
                 return None
             
             # Transfer roots
@@ -371,7 +371,7 @@ class GeometryService:
             
             return shape if not shape.IsNull() else None
         except Exception as e:
-            print(f"Error importing {file_type} file: {e}")
+            logger.error("Error importing %s file: %s", file_type, e, exc_info=True)
             return None
 
     @staticmethod
@@ -392,7 +392,7 @@ class GeometryService:
         elif filename_lower.endswith(('.iges', '.igs')):
             return GeometryService._import_with_reader(IGESControl_Reader(), filename, "IGES")
         else:
-            print(f"Unsupported file format: {filename}")
+            logger.warning("Unsupported file format: %s", filename)
             return None
 
     @staticmethod
@@ -419,9 +419,9 @@ class GeometryService:
             
             return success
         except Exception as e:
-            print(f"Error exporting IGES file: {e}")
+            logger.error("Error exporting IGES file: %s", e, exc_info=True)
             return False
-        
+
     @staticmethod
     def export_shapes_to_iges(shapes: list[TopoDS_Shape], filename: str) -> bool:
         """Export multiple shapes to a single IGES file.
@@ -447,9 +447,9 @@ class GeometryService:
             
             return success
         except Exception as e:
-            print(f"Error exporting IGES file: {e}")
+            logger.error("Error exporting IGES file: %s", e, exc_info=True)
             return False
-    
+
     def export_shapes_to_step(self, shapes: list[TopoDS_Shape], filename: str) -> bool:
         """Export multiple shapes to a single STEP file.
         
@@ -476,5 +476,5 @@ class GeometryService:
             
             return status == IFSelect_ReturnStatus.IFSelect_RetDone
         except Exception as e:
-            print(f"Error exporting STEP file: {e}")
+            logger.error("Error exporting STEP file: %s", e, exc_info=True)
             return False
