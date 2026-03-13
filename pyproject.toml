@@ -1,6 +1,6 @@
 [project]
 name = "cad-widgets"
-version = "0.1.7"
+version = "0.1.8"
 description = "OpenCascade PySide6 3D CAD domain widgets with modular architecture"
 readme = "README.md"
 requires-python = ">=3.10"
