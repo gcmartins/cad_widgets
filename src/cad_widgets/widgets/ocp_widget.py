@@ -51,6 +51,7 @@ class OCPWidget(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_NativeWindow, True)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent, True)
+        self.setAttribute(Qt.WidgetAttribute.WA_PaintOnScreen, True)
 
         # Initialize OpenCascade components
         self._display_connection: Aspect_DisplayConnection
@@ -290,6 +291,10 @@ class OCPWidget(QWidget):
         if self._view_service:
             self._view_service.must_be_resized()
             self._view_service.redraw()
+
+    def paintEngine(self):
+        """Return None to signal Qt that OCC renders directly to the native window."""
+        return None
 
     def paintEvent(self, event):
         """Handle paint events."""
