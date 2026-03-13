@@ -175,8 +175,6 @@ class OCPWidget(QWidget):
         shape_id: str,
         color=None,
         update=True,
-        shape_type: str = "Shape",
-        name: Optional[str] = None,
     ):
         """
         Display an OCP shape in the viewer.
@@ -186,8 +184,6 @@ class OCPWidget(QWidget):
             shape_id: Specific ID for the shape
             color: Tuple of RGB values (0-1) or None for default
             update: Whether to update the display
-            shape_type: Type of shape (Box, Sphere, etc.) for identification
-            name: Optional name for the shape
 
         Returns:
             str: Shape ID or None if error
@@ -195,9 +191,7 @@ class OCPWidget(QWidget):
         if not self._view_service:
             return None
 
-        return self._view_service.display_shape(
-            shape, shape_id, color, update, shape_type, name
-        )
+        return self._view_service.display_shape(shape, shape_id, color, update)
 
     def erase_all(self):
         """Remove all shapes from the display."""
@@ -553,12 +547,9 @@ class OCPWidget(QWidget):
         """
         self.display_shape(
             managed_shape.shape,
+            shape_id=shape_id,
             color=managed_shape.color,
-
             update=True,
-            shape_type=managed_shape.shape_type.value,
-            name=managed_shape.name,
-            shape_id=shape_id
         )
     
     def on_shape_updated(self, shape_id: str, managed_shape: ManagedShape):
@@ -572,11 +563,9 @@ class OCPWidget(QWidget):
         self.erase_shape(shape_id)
         result = self.display_shape(
             managed_shape.shape,
+            shape_id,
             color=managed_shape.color,
             update=True,
-            shape_type=managed_shape.shape_type.value,
-            name=managed_shape.name,
-            shape_id=shape_id,
         )
         if result is None:
             logger.warning("ViewService failed to redisplay shape %s after update", shape_id)
