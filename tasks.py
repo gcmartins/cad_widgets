@@ -51,6 +51,21 @@ def check(c):
 
 
 @task
+def bump_version(c):
+    """Bump the patch version in pyproject.toml and print the new version."""
+    import re
+
+    content = open("pyproject.toml").read()
+    ver = re.search(r'version = "(\d+)\.(\d+)\.(\d+)"', content)
+    if not ver:
+        raise SystemExit("Could not find version in pyproject.toml")
+    major, minor, patch = ver.groups()
+    new_ver = f"{major}.{minor}.{int(patch) + 1}"
+    open("pyproject.toml", "w").write(content.replace(ver.group(), f'version = "{new_ver}"'))
+    print(new_ver)
+
+
+@task
 def clean(c):
     """Clean up generated files."""
     print("Cleaning up...")
