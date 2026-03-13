@@ -558,6 +558,113 @@ def test_managed_shape_structure(geometry_manager):
     assert isinstance(retrieved_shape.properties, BoxProperties)
 
 
+def test_update_shape_color(geometry_manager, qapp):
+    """Test updating a shape's color."""
+    properties = BoxProperties(width=50.0, height=50.0, depth=50.0)
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        name="Test Box",
+        color=(1.0, 0.0, 0.0),
+        properties=properties
+    )
+    shape_id = managed_shape.shape_id
+
+    spy = QSignalSpy(geometry_manager.shape_updated)
+
+    result = geometry_manager.update_shape_color(shape_id, (0.0, 0.5, 1.0))
+
+    qapp.processEvents()
+
+    assert result is True
+    assert spy.count() == 1
+    signal_args = spy.at(0)
+    assert signal_args[0] == shape_id
+    assert isinstance(signal_args[1], ManagedShape)
+
+    retrieved = geometry_manager.get_shape(shape_id)
+    assert retrieved.color == (0.0, 0.5, 1.0)
+
+
+def test_update_shape_color_nonexistent(geometry_manager):
+    """Test updating color of a shape that doesn't exist returns False."""
+    result = geometry_manager.update_shape_color("nonexistent", (1.0, 0.0, 0.0))
+    assert result is False
+
+
+def test_update_shape_color_does_not_affect_properties(geometry_manager):
+    """Test that updating color does not alter the shape's geometry properties."""
+    properties = BoxProperties(width=50.0, height=30.0, depth=20.0)
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        name="Test Box",
+        color=(1.0, 0.0, 0.0),
+        properties=properties
+    )
+
+    geometry_manager.update_shape_color(managed_shape.shape_id, (0.0, 1.0, 0.0))
+
+    retrieved = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved.properties.width == 50.0
+    assert retrieved.properties.height == 30.0
+    assert retrieved.properties.depth == 20.0
+
+
+def test_update_shape_color_multiple_times(geometry_manager, qapp):
+    """Test updating color multiple times emits a signal each time."""
+    properties = SphereProperties(radius=25.0)
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.SPHERE,
+        name="Test Sphere",
+        color=(1.0, 0.0, 0.0),
+        properties=properties
+    )
+    shape_id = managed_shape.shape_id
+
+    spy = QSignalSpy(geometry_manager.shape_updated)
+
+    geometry_manager.update_shape_color(shape_id, (0.0, 1.0, 0.0))
+    geometry_manager.update_shape_color(shape_id, (0.0, 0.0, 1.0))
+
+    qapp.processEvents()
+
+    assert spy.count() == 2
+    assert geometry_manager.get_shape(shape_id).color == (0.0, 0.0, 1.0)
+
+
+def test_update_shape_color_on_union_component_does_not_emit_signal(geometry_manager, qapp):
+    """Regression test: updating the color of an internal union component must not
+    emit shape_updated (which would cause the component to be displayed as a
+    standalone shape in the viewer)."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        name="Box",
+        color=(1.0, 0.0, 0.0),
+        properties=BoxProperties(width=10.0, height=10.0, depth=10.0),
+    )
+    sphere = geometry_manager.create_shape(
+        shape_type=ShapeType.SPHERE,
+        name="Sphere",
+        color=(0.0, 1.0, 0.0),
+        properties=SphereProperties(radius=5.0),
+    )
+
+    union_id = geometry_manager.union_shapes([box.shape_id, sphere.shape_id])
+    assert union_id is not None
+
+    component_id = box.shape_id
+    assert geometry_manager.get_shape(component_id).parent_id == union_id
+
+    spy = QSignalSpy(geometry_manager.shape_updated)
+
+    result = geometry_manager.update_shape_color(component_id, (0.0, 0.0, 1.0))
+
+    qapp.processEvents()
+
+    assert result is True
+    assert spy.count() == 0, "shape_updated must not fire for internal union components"
+    assert geometry_manager.get_shape(component_id).color == (0.0, 0.0, 1.0)
+
+
 def test_sequential_operations(geometry_manager):
     """Test sequential create, update, and query operations."""
     # Create first shape
