@@ -286,8 +286,6 @@ class ViewService:
         shape_id: str,
         color: Optional[Tuple[float, float, float]] = None,
         update: bool = True,
-        shape_type: str = "Shape",
-        name: Optional[str] = None,
     ) -> Optional[str]:
         """
         Display an OCP shape in the viewer.
@@ -297,8 +295,6 @@ class ViewService:
             shape_id: Specific ID for the shape
             color: Tuple of RGB values (0-1) or None for default
             update: Whether to update the display
-            shape_type: Unused, kept for API compatibility
-            name: Unused, kept for API compatibility
 
         Returns:
             str: Shape ID or None if error

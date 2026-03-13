@@ -167,6 +167,7 @@ class CADViewerWindow(QMainWindow):
 
         # Connect property editor signals
         self.property_editor.properties_changed.connect(self._on_properties_changed)
+        self.property_editor.color_changed.connect(self._on_color_changed)
         
         # Connect geometry manager signals to components
         self.geometry_manager.shape_created.connect(self.viewer.on_shape_created)
@@ -191,7 +192,8 @@ class CADViewerWindow(QMainWindow):
                 shape_id,
                 managed_shape.shape_type,
                 managed_shape.name,
-                managed_shape.properties.to_dict()
+                managed_shape.properties.to_dict(),
+                managed_shape.color,
             )
     
     def _on_shape_creation_requested(self, shape_type: ShapeType):
@@ -202,9 +204,6 @@ class CADViewerWindow(QMainWindow):
         Args:
             shape_type: Type of shape to create
         """
-        
-        # Default fixed color (light gray-blue)
-        color = (0.7, 0.75, 0.8)
         
         # Create properties based on shape type (using defaults)
         properties_map = {
@@ -220,7 +219,6 @@ class CADViewerWindow(QMainWindow):
         # Create the shape via geometry manager (name will be auto-generated)
         self.geometry_manager.create_shape(
             shape_type=shape_type,
-            color=color,
             properties=properties
         )
     
@@ -236,6 +234,10 @@ class CADViewerWindow(QMainWindow):
         
         # Clear property editor if this shape was being edited
         self.property_editor.clear_shape()
+
+    def _on_color_changed(self, shape_id: str, color: tuple):
+        """Handle color change from the property editor."""
+        self.geometry_manager.update_shape_color(shape_id, color)
 
     def _on_properties_changed(self, shape_id: str, properties_dict: dict):
         """Handle property changes from the editor."""
@@ -394,7 +396,6 @@ class CADViewerWindow(QMainWindow):
         # 1. Box at origin
         self.geometry_manager.create_shape(
             shape_type=ShapeType.BOX,
-            name="Red Box",
             color=(0.7, 0.2, 0.2),
             properties=BoxProperties(
                 width=50, height=50, depth=50,
@@ -406,7 +407,6 @@ class CADViewerWindow(QMainWindow):
         # 2. Sphere
         self.geometry_manager.create_shape(
             shape_type=ShapeType.SPHERE,
-            name="Green Sphere",
             color=(0.2, 0.7, 0.2),
             properties=SphereProperties(
                 radius=30,
@@ -418,7 +418,6 @@ class CADViewerWindow(QMainWindow):
         # 3. Cylinder
         self.geometry_manager.create_shape(
             shape_type=ShapeType.CYLINDER,
-            name="Blue Cylinder",
             color=(0.2, 0.2, 0.7),
             properties=CylinderProperties(
                 radius=20, height=60,
@@ -430,7 +429,6 @@ class CADViewerWindow(QMainWindow):
         # 4. Cone
         self.geometry_manager.create_shape(
             shape_type=ShapeType.CONE,
-            name="Yellow Cone",
             color=(0.7, 0.7, 0.2),
             properties=ConeProperties(
                 base_radius=30, top_radius=10, height=70,
@@ -442,7 +440,6 @@ class CADViewerWindow(QMainWindow):
         # 5. Torus
         self.geometry_manager.create_shape(
             shape_type=ShapeType.TORUS,
-            name="Magenta Torus",
             color=(0.7, 0.2, 0.7),
             properties=TorusProperties(
                 major_radius=25, 

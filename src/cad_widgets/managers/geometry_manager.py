@@ -24,6 +24,8 @@ from ..models.shape_properties import (
     Rotation
 )
 
+DEFAULT_SHAPE_COLOR = (0.7, 0.75, 0.8)
+
 
 @dataclass
 class ManagedShape:
@@ -92,8 +94,8 @@ class GeometryManager(QObject):
     def create_shape(
         self,
         shape_type: ShapeType,
-        color: Tuple[float, float, float],
         properties: ShapeProperties,
+        color: Tuple[float, float, float] = DEFAULT_SHAPE_COLOR,
         name: Optional[str] = None
     ) -> Any:
         """
@@ -101,10 +103,9 @@ class GeometryManager(QObject):
         
         Args:
             shape_type: Type of shape (ShapeType enum)
-            color: RGB color tuple
             properties: Shape properties
+            color: RGB color tuple
             name: Display name (auto-generated if None)
-            
         Returns:
             Created TopoDS_Shape
         """
@@ -338,6 +339,35 @@ class GeometryManager(QObject):
             shape = self._geo_service.rotate_shape(shape, (0, 0, 0), (1, 0, 0), -old_rx)
 
         return self._apply_transformations(shape, new_properties)
+
+    def update_shape_color(
+        self,
+        shape_id: str,
+        color: Tuple[float, float, float],
+    ) -> bool:
+        """
+        Update the display color of an existing shape.
+
+        Args:
+            shape_id: ID of the shape to update
+            color: New RGB color tuple (0-1 range)
+
+        Returns:
+            True if updated, False if shape not found
+        """
+        if shape_id not in self._shapes:
+            return False
+
+        managed_shape = self._shapes[shape_id]
+        managed_shape.color = color
+
+        # Internal components are not independently displayed; skip the signal
+        # to avoid re-displaying them as standalone shapes in the viewer.
+        if managed_shape.parent_id is not None:
+            return True
+
+        self.shape_updated.emit(shape_id, managed_shape)
+        return True
 
     def remove_shape(self, shape_id: str) -> bool:
         """
