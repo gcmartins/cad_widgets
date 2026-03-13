@@ -3,7 +3,7 @@ Property Editor Widget
 A widget component for editing geometry shape properties including size, translation, and rotation
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -14,10 +14,14 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QScrollArea,
     QFrame,
+    QPushButton,
+    QColorDialog,
 )
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtGui import QColor
 
 from cad_widgets.enums import ShapeType
+from cad_widgets.managers.geometry_manager import DEFAULT_SHAPE_COLOR
 
 
 class PropertyEditorWidget(QWidget):
@@ -36,6 +40,7 @@ class PropertyEditorWidget(QWidget):
 
     # Qt Signals
     properties_changed = Signal(str, dict)
+    color_changed = Signal(str, tuple)  # shape_id, (r, g, b) in 0-1 range
 
     def __init__(self, parent=None):
         """Initialize the property editor widget."""
@@ -44,6 +49,7 @@ class PropertyEditorWidget(QWidget):
         # Current shape tracking
         self._current_shape_id: Optional[str] = None
         self._current_shape_type: Optional[ShapeType] = None
+        self._current_color: Optional[Tuple[float, float, float]] = None
         self._loading: bool = False  # Flag to prevent emitting signals during loading
         
         # Setup UI
@@ -143,7 +149,24 @@ class PropertyEditorWidget(QWidget):
         
         self.rotation_group.setLayout(rotation_layout)
         scroll_layout.addWidget(self.rotation_group)
-        
+
+        # Appearance Group
+        self.appearance_group = QGroupBox("Appearance")
+        appearance_layout = QHBoxLayout()
+        appearance_layout.setSpacing(5)
+
+        self.color_button = QPushButton()
+        self.color_button.setFixedHeight(28)
+        self.color_button.setMinimumWidth(80)
+        self.color_button.clicked.connect(self._on_pick_color)
+
+        appearance_layout.addWidget(QLabel("Color:"))
+        appearance_layout.addWidget(self.color_button)
+        appearance_layout.addStretch()
+
+        self.appearance_group.setLayout(appearance_layout)
+        scroll_layout.addWidget(self.appearance_group)
+
         scroll_layout.addStretch()
         
         scroll.setWidget(scroll_widget)
@@ -184,34 +207,39 @@ class PropertyEditorWidget(QWidget):
         spinbox.setSuffix("°")
         spinbox.editingFinished.connect(self._on_value_changed)
         return spinbox
-        
+
     def set_shape(
         self,
         shape_id: str,
         shape_type: ShapeType,
         shape_name: str,
-        properties: Optional[Dict[str, Any]] = None
+        properties: Optional[Dict[str, Any]] = None,
+        color: Tuple[float, float, float] = DEFAULT_SHAPE_COLOR,
     ):
         """
         Set the shape to edit.
-        
+
         Args:
             shape_id: Unique identifier for the shape
             shape_type: Type of shape (Box, Sphere, Cylinder, etc.)
             properties: Dictionary of current shape properties
+            color: RGB color tuple (0-1 range) for the shape
         """
         self._current_shape_id = shape_id
         self._current_shape_type = shape_type
-        
+
         # Update UI
         self.shape_info_label.setText(f"Editing: {shape_name}")
-        
+
         # Load properties into UI
         self._load_properties(properties or {})
-        
+
+        # Load color
+        self._load_color(color)
+
         # Enable UI
         self._set_enabled(True)
-        
+
         # Configure visible size parameters based on shape type
         self._configure_size_parameters(shape_type)
         
@@ -252,6 +280,36 @@ class PropertyEditorWidget(QWidget):
         # Re-enable signal emission
         self._loading = False
             
+    def _load_color(self, color: Tuple[float, float, float]):
+        """Load the shape color into the color button swatch."""
+        self._current_color = color
+        self._update_color_button(color)
+
+    def _update_color_button(self, color: Tuple[float, float, float]):
+        """Update the color button background to reflect the given RGB color."""
+        r, g, b = (int(c * 255) for c in color)
+        self.color_button.setStyleSheet(
+            f"background-color: rgb({r},{g},{b}); border: 1px solid #888;"
+        )
+
+    def _on_pick_color(self):
+        """Open QColorDialog (always on top) and emit color_changed if the user picks a color."""
+        initial = QColor()
+        if self._current_color:
+            r, g, b = (int(c * 255) for c in self._current_color)
+            initial.setRgb(r, g, b)
+        dialog = QColorDialog(initial, self.window())
+        dialog.setWindowTitle("Pick Shape Color")
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        if dialog.exec() != QColorDialog.DialogCode.Accepted:
+            return
+        picked = dialog.selectedColor()
+        color = (picked.redF(), picked.greenF(), picked.blueF())
+        self._current_color = color
+        self._update_color_button(color)
+        if self._current_shape_id:
+            self.color_changed.emit(self._current_shape_id, color)
+
     def _configure_size_parameters(self, shape_type: ShapeType):
         """Show/hide size parameters based on shape type."""
         # Define which parameters are relevant for each shape type
@@ -324,6 +382,7 @@ class PropertyEditorWidget(QWidget):
         self.size_group.setEnabled(enabled)
         self.translation_group.setEnabled(enabled)
         self.rotation_group.setEnabled(enabled)
+        self.appearance_group.setEnabled(enabled)
         
     def _on_value_changed(self):
         """Handle value changed in any spinbox."""
