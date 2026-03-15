@@ -13,7 +13,7 @@ import logging
 from typing import Optional
 
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 import sys
 
 from OCP.V3d import V3d_View, V3d_Viewer
@@ -39,6 +39,8 @@ class OCPWidget(QWidget):
     """
     A Qt widget for displaying OpenCascade 3D content.
     """
+
+    shape_selection_changed = Signal(list)  # List of shape_ids selected in viewer
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -371,6 +373,7 @@ class OCPWidget(QWidget):
                 )
             )
             self._selection_service.select(x, y, self._view, replace)
+            self._emit_selection_changed()
 
         # Clear last position to end interaction
         self._last_pos = None
@@ -431,6 +434,37 @@ class OCPWidget(QWidget):
         """Clear all selected entities."""
         if self._selection_service:
             self._selection_service.clear()
+
+    def select_shapes(self, shape_ids: list[str]):
+        """
+        Programmatically select multiple shapes in the viewer by their IDs.
+
+        Args:
+            shape_ids: List of shape IDs to highlight/select
+        """
+        if self._view_service:
+            self._view_service.select_shapes(shape_ids)
+
+    def select_shape(self, shape_id: str):
+        """
+        Programmatically select a shape in the viewer by its ID.
+
+        Args:
+            shape_id: ID of the shape to highlight/select
+        """
+        self.select_shapes([shape_id])
+
+    def _emit_selection_changed(self):
+        """Resolve current AIS selection to shape IDs and emit shape_selection_changed."""
+        if not self._view_service or not self._selection_service:
+            return
+        selected_ais = self._selection_service.get_selected_shapes()
+        shape_ids = []
+        for ais_shape in selected_ais:
+            sid = self._view_service.get_shape_id_for_ais_shape(ais_shape)
+            if sid:
+                shape_ids.append(sid)
+        self.shape_selection_changed.emit(shape_ids)
 
     def get_selection_mode(self) -> SelectionMode:
         """

@@ -31,7 +31,7 @@ class GeometryTreeWidget(QWidget):
     
     Signals:
         shape_visibility_changed(str, bool): Emitted when shape visibility changes (shape_id, visible)
-        shape_selected(str): Emitted when a shape is selected in the tree (shape_id)
+        shapes_selected(list): Emitted when shapes are selected in the tree (list of shape_ids)
         shape_deleted(str): Emitted when a shape is deleted (shape_id)
         clear_all_requested(): Emitted when user requests to clear all shapes
         shape_creation_requested(ShapeType): Emitted when user requests to create a new shape
@@ -44,7 +44,7 @@ class GeometryTreeWidget(QWidget):
 
     # Qt Signals
     shape_visibility_changed = Signal(str, bool)
-    shape_selected = Signal(str)
+    shapes_selected = Signal(list)  # List of shape_ids
     shape_deleted = Signal(str)
     clear_all_requested = Signal()
     shape_creation_requested = Signal(object)  # ShapeType
@@ -93,7 +93,7 @@ class GeometryTreeWidget(QWidget):
         
         # Connect tree signals
         self.tree.itemChanged.connect(self._on_item_changed)
-        self.tree.itemClicked.connect(self._on_item_clicked)
+        self.tree.itemSelectionChanged.connect(self._on_item_selection_changed)
         
         layout.addWidget(self.tree)
         
@@ -266,17 +266,29 @@ class GeometryTreeWidget(QWidget):
                 visible = item.checkState(0) == Qt.CheckState.Checked
                 self.shape_visibility_changed.emit(shape_id, visible)
                 
-    def _on_item_clicked(self, item: QTreeWidgetItem, column: int):
+    def _on_item_selection_changed(self):
+        """Handle selection changes in the tree (single or multi-select)."""
+        shape_ids = [
+            item.data(0, Qt.ItemDataRole.UserRole)
+            for item in self.tree.selectedItems()
+            if item.data(0, Qt.ItemDataRole.UserRole)
+        ]
+        self.shapes_selected.emit(shape_ids)
+
+    def select_shapes(self, shape_ids: list[str]):
         """
-        Handle item clicked event.
-        
+        Programmatically select tree items by shape ID without re-emitting signals.
+
         Args:
-            item: The clicked item
-            column: The clicked column
+            shape_ids: List of shape IDs to select
         """
-        shape_id = item.data(0, Qt.ItemDataRole.UserRole)
-        if shape_id:
-            self.shape_selected.emit(shape_id)
+        self.tree.blockSignals(True)
+        self.tree.clearSelection()
+        id_set = set(shape_ids)
+        for sid, item in self._shapes.items():
+            if sid in id_set:
+                item.setSelected(True)
+        self.tree.blockSignals(False)
     
     def _delete_selected_shapes(self, shape_ids: List[str]):
         """
