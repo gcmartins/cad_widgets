@@ -38,6 +38,8 @@ from cad_widgets import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    RectangleProperties,
+    CircleProperties,
     ImportedProperties,
     Translation,
     Rotation,
@@ -212,6 +214,8 @@ class CADViewerWindow(QMainWindow):
             ShapeType.CYLINDER: CylinderProperties(),
             ShapeType.CONE: ConeProperties(),
             ShapeType.TORUS: TorusProperties(),
+            ShapeType.RECTANGLE: RectangleProperties(),
+            ShapeType.CIRCLE: CircleProperties(),
         }
         
         properties = properties_map.get(shape_type, BoxProperties())
@@ -446,6 +450,26 @@ class CADViewerWindow(QMainWindow):
                 minor_radius=10,
                 translation=Translation(x=-80, y=0, z=30),
                 rotation=Rotation(x=0, y=90, z=0)
+            )
+        )
+
+        # 6. Rectangular surface
+        self.geometry_manager.create_shape(
+            shape_type=ShapeType.RECTANGLE,
+            color=(0.2, 0.8, 0.8),
+            properties=RectangleProperties(
+                width=80, height=50,
+                translation=Translation(x=-80, y=100, z=0),
+            )
+        )
+
+        # 7. Circular surface
+        self.geometry_manager.create_shape(
+            shape_type=ShapeType.CIRCLE,
+            color=(0.9, 0.5, 0.1),
+            properties=CircleProperties(
+                radius=35,
+                translation=Translation(x=0, y=-80, z=0),
             )
         )
 

@@ -19,6 +19,8 @@ from ..models.shape_properties import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    RectangleProperties,
+    CircleProperties,
     ImportedProperties,
     Translation,
     Rotation
@@ -115,21 +117,23 @@ class GeometryManager(QObject):
         
         shape = self._create_shape_from_properties(shape_type, properties)
         
-        if shape:
-            shape_id = self._new_shape_id(shape_type)
-            managed_shape = ManagedShape(
-                shape_id=shape_id,
-                shape=shape,
-                shape_type=shape_type,
-                name=name,
-                color=color,
-                properties=properties
-            )
-            self._shapes[shape_id] = managed_shape
-            
-            # Emit signal for observers
-            self.shape_created.emit(shape_id, managed_shape)
-        
+        if not shape:
+            return None
+
+        shape_id = self._new_shape_id(shape_type)
+        managed_shape = ManagedShape(
+            shape_id=shape_id,
+            shape=shape,
+            shape_type=shape_type,
+            name=name,
+            color=color,
+            properties=properties
+        )
+        self._shapes[shape_id] = managed_shape
+
+        # Emit signal for observers
+        self.shape_created.emit(shape_id, managed_shape)
+
         return managed_shape
 
     def import_shape(
@@ -623,6 +627,10 @@ class GeometryManager(QObject):
                 properties.major_radius,
                 properties.minor_radius
             )
+        elif shape_type == ShapeType.RECTANGLE and isinstance(properties, RectangleProperties):
+            shape = self._geo_service.create_rectangle(properties.width, properties.height)
+        elif shape_type == ShapeType.CIRCLE and isinstance(properties, CircleProperties):
+            shape = self._geo_service.create_circle(properties.radius)
         elif shape_type == ShapeType.IMPORTED and isinstance(properties, ImportedProperties):
             # For imported shapes, no base shape is created
             # The shape is already provided externally
@@ -641,6 +649,8 @@ class GeometryManager(QObject):
         ShapeType.CYLINDER: CylinderProperties,
         ShapeType.CONE: ConeProperties,
         ShapeType.TORUS: TorusProperties,
+        ShapeType.RECTANGLE: RectangleProperties,
+        ShapeType.CIRCLE: CircleProperties,
         ShapeType.IMPORTED: ImportedProperties,
     }
 

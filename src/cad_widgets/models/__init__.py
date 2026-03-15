@@ -12,6 +12,8 @@ from .shape_properties import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    RectangleProperties,
+    CircleProperties,
     ImportedProperties,
 )
 

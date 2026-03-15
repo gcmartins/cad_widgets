@@ -13,8 +13,13 @@ from OCP.BRepPrimAPI import (
     BRepPrimAPI_MakeCone,
     BRepPrimAPI_MakeTorus,
 )
-from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
-from OCP.gp import gp_Pnt, gp_Ax2, gp_Dir, gp_Trsf, gp_Vec
+from OCP.BRepBuilderAPI import (
+    BRepBuilderAPI_Transform,
+    BRepBuilderAPI_MakeFace,
+    BRepBuilderAPI_MakeEdge,
+    BRepBuilderAPI_MakeWire,
+)
+from OCP.gp import gp_Pnt, gp_Ax2, gp_Ax3, gp_Dir, gp_Trsf, gp_Vec, gp_Pln, gp_Circ
 from OCP.TopoDS import TopoDS_Shape
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut, BRepAlgoAPI_Common
 from OCP.STEPControl import STEPControl_Writer, STEPControl_Reader, STEPControl_AsIs
@@ -38,6 +43,8 @@ class GeometryServiceProtocol(Protocol):
     def create_cylinder(self, radius: float, height: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
     def create_cone(self, radius1: float, radius2: float, height: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
     def create_torus(self, major_radius: float, minor_radius: float, position: Tuple[float, float, float] = ..., direction: Tuple[float, float, float] = ...) -> "TopoDS_Shape": ...  # noqa: E501
+    def create_rectangle(self, width: float, height: float) -> "TopoDS_Shape": ...
+    def create_circle(self, radius: float) -> "TopoDS_Shape": ...
     def translate_shape(self, shape: "TopoDS_Shape", dx: float, dy: float, dz: float) -> "TopoDS_Shape": ...
     def rotate_shape(self, shape: "TopoDS_Shape", axis_point: Tuple[float, float, float], axis_direction: Tuple[float, float, float], angle_degrees: float) -> "TopoDS_Shape": ...  # noqa: E501
     def fuse_shapes(self, shape1: "TopoDS_Shape", shape2: "TopoDS_Shape") -> Optional["TopoDS_Shape"]: ...
@@ -173,6 +180,37 @@ class GeometryService:
         axis = gp_Ax2(gp_Pnt(*position), gp_Dir(*direction))
         torus_maker = BRepPrimAPI_MakeTorus(axis, major_radius, minor_radius)
         return torus_maker.Shape()
+
+    @staticmethod
+    def create_rectangle(width: float, height: float) -> TopoDS_Shape:
+        """
+        Create a rectangular surface (flat face) centered at the origin in the XY plane.
+
+        Args:
+            width: Width (X dimension)
+            height: Height (Y dimension)
+
+        Returns:
+            TopoDS_Shape representing the rectangular face
+        """
+        pln = gp_Pln(gp_Ax3(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)))
+        return BRepBuilderAPI_MakeFace(pln, -width / 2, width / 2, -height / 2, height / 2).Face()
+
+    @staticmethod
+    def create_circle(radius: float) -> TopoDS_Shape:
+        """
+        Create a circular surface (disk) centered at the origin in the XY plane.
+
+        Args:
+            radius: Radius of the disk
+
+        Returns:
+            TopoDS_Shape representing the circular face
+        """
+        circle = gp_Circ(gp_Ax2(gp_Pnt(0, 0, 0), gp_Dir(0, 0, 1)), radius)
+        edge = BRepBuilderAPI_MakeEdge(circle).Edge()
+        wire = BRepBuilderAPI_MakeWire(edge).Wire()
+        return BRepBuilderAPI_MakeFace(wire).Face()
 
     @staticmethod
     def translate_shape(

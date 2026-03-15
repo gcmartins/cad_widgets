@@ -157,6 +157,19 @@ class TorusProperties(ShapeProperties):
 
 
 @dataclass
+class RectangleProperties(ShapeProperties):
+    """Properties for rectangle shapes."""
+    width: float = 60.0
+    height: float = 40.0
+
+
+@dataclass
+class CircleProperties(ShapeProperties):
+    """Properties for circle shapes."""
+    radius: float = 30.0
+
+
+@dataclass
 class ImportedProperties(ShapeProperties):
     """Properties for imported shapes (STEP, IGES, etc.).
 

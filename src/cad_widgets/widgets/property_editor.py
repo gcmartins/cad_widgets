@@ -319,6 +319,8 @@ class PropertyEditorWidget(QWidget):
             ShapeType.CYLINDER: ["radius", "height"],
             ShapeType.CONE: ["base_radius", "top_radius", "height"],
             ShapeType.TORUS: ["major_radius", "minor_radius"],
+            ShapeType.RECTANGLE: ["width", "height"],
+            ShapeType.CIRCLE: ["radius"],
             ShapeType.UNION: [],  # No size parameters for boolean operations
             ShapeType.SUBTRACTION: [],  # No size parameters for boolean operations
             ShapeType.IMPORTED: [],  # No size parameters for imported shapes
