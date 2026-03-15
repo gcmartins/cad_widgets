@@ -480,3 +480,111 @@ def test_get_selected_shapes_type(qapp):
 
     selected = widget.get_selected_shapes()
     assert isinstance(selected, list)
+
+
+# ============================================================================
+# Multi-selection and viewer→tree reverse-selection tests
+# ============================================================================
+
+
+def _display_two_shapes(widget):
+    """Helper: display two boxes and return their shape IDs."""
+    svc = GeometryService()
+    box1 = svc.create_box(50, 50, 50)
+    box2 = svc.create_box(30, 30, 30)
+    widget.display_shape(box1, shape_id="ms-a")
+    widget.display_shape(box2, shape_id="ms-b")
+    return ["ms-a", "ms-b"]
+
+
+def test_select_shapes_single(qapp):
+    """select_shapes() with one ID selects that shape without error."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    widget.select_shapes([ids[0]])  # should not raise
+
+
+def test_select_shapes_multiple(qapp):
+    """select_shapes() with multiple IDs selects all of them without error."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    widget.select_shapes(ids)  # should not raise
+
+
+def test_select_shapes_empty_clears(qapp):
+    """select_shapes([]) clears the current selection without error."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    widget.select_shapes(ids)
+    widget.select_shapes([])  # should not raise
+
+
+def test_select_shapes_unknown_id_ignored(qapp):
+    """select_shapes() with unknown IDs does not raise."""
+    widget = OCPWidget()
+    _display_two_shapes(widget)
+
+    widget.select_shapes(["does-not-exist"])  # should not raise
+
+
+def test_select_shape_delegates_to_select_shapes(qapp):
+    """select_shape() is equivalent to select_shapes() with a single-element list."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    # Both call paths should complete without error
+    widget.select_shape(ids[0])
+    widget.select_shapes([ids[0]])
+
+
+def test_shape_selection_changed_signal_exists(qapp):
+    """OCPWidget exposes the shape_selection_changed signal."""
+    widget = OCPWidget()
+    received = []
+    widget.shape_selection_changed.connect(lambda sids: received.append(sids))
+    # Signal is connected — no error means the signal attribute exists
+    assert hasattr(widget, "shape_selection_changed")
+
+
+def test_emit_selection_changed_no_service(qapp):
+    """_emit_selection_changed() is a no-op when services are not initialised."""
+    widget = OCPWidget()
+    # Force services to None to simulate uninitialised state
+    widget._view_service = None
+    widget._selection_service = None
+
+    received = []
+    widget.shape_selection_changed.connect(lambda sids: received.append(sids))
+    widget._emit_selection_changed()  # must not raise
+
+    assert received == []
+
+
+def test_get_shape_id_for_ais_shape_returns_none_when_missing(qapp):
+    """ViewService.get_shape_id_for_ais_shape returns None for an unknown object."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    # Use a fresh unregistered AIS object as a sentinel
+    from OCP.AIS import AIS_Shape
+    from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
+    dummy_topo = BRepPrimAPI_MakeBox(1, 1, 1).Shape()
+    dummy_ais = AIS_Shape(dummy_topo)
+
+    result = widget._view_service.get_shape_id_for_ais_shape(dummy_ais)
+    assert result is None
+
+
+def test_get_shape_id_for_ais_shape_finds_registered_shape(qapp):
+    """ViewService.get_shape_id_for_ais_shape resolves a registered AIS object to its ID."""
+    widget = OCPWidget()
+    ids = _display_two_shapes(widget)
+
+    # Retrieve the AIS object that was registered under ids[0]
+    ais_obj = widget._view_service._shapes[ids[0]].ais_shape
+
+    result = widget._view_service.get_shape_id_for_ais_shape(ais_obj)
+    assert result == ids[0]

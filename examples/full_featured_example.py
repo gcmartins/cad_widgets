@@ -144,7 +144,8 @@ class CADViewerWindow(QMainWindow):
         self.geometry_tree.shape_visibility_changed.connect(
             self._on_shape_visibility_changed
         )
-        self.geometry_tree.shape_selected.connect(self._on_shape_selected)
+        self.geometry_tree.shapes_selected.connect(self._on_shapes_selected)
+        self.viewer.shape_selection_changed.connect(self._on_viewer_selection_changed)
         self.geometry_tree.shape_creation_requested.connect(
             self._on_shape_creation_requested
         )
@@ -189,17 +190,37 @@ class CADViewerWindow(QMainWindow):
         """Handle shape visibility changes from the geometry tree."""
         self.viewer.set_shape_visibility(shape_id, visible)
 
-    def _on_shape_selected(self, shape_id: str):
-        """Handle shape selection in the tree."""
-        managed_shape = self.geometry_manager.get_shape(shape_id)
-        if managed_shape:
-            self.property_editor.set_shape(
-                shape_id,
-                managed_shape.shape_type,
-                managed_shape.name,
-                managed_shape.properties.to_dict(),
-                managed_shape.color,
-            )
+    def _on_shapes_selected(self, shape_ids: list):
+        """Handle shape selection from tree (multi-select aware)."""
+        self.viewer.select_shapes(shape_ids)
+        if len(shape_ids) == 1:
+            managed_shape = self.geometry_manager.get_shape(shape_ids[0])
+            if managed_shape:
+                self.property_editor.set_shape(
+                    shape_ids[0],
+                    managed_shape.shape_type,
+                    managed_shape.name,
+                    managed_shape.properties.to_dict(),
+                    managed_shape.color,
+                )
+        else:
+            self.property_editor.clear_shape()
+
+    def _on_viewer_selection_changed(self, shape_ids: list):
+        """Handle shape selection from OCP viewer (reverse sync to tree)."""
+        self.geometry_tree.select_shapes(shape_ids)
+        if len(shape_ids) == 1:
+            managed_shape = self.geometry_manager.get_shape(shape_ids[0])
+            if managed_shape:
+                self.property_editor.set_shape(
+                    shape_ids[0],
+                    managed_shape.shape_type,
+                    managed_shape.name,
+                    managed_shape.properties.to_dict(),
+                    managed_shape.color,
+                )
+        else:
+            self.property_editor.clear_shape()
     
     def _on_shape_creation_requested(self, shape_type: ShapeType):
         """

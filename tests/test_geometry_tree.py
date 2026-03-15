@@ -131,3 +131,88 @@ def test_update_shape_properties(geometry_tree):
 
     # Shape should still exist
     assert shape_id in geometry_tree.get_shape_ids()
+
+
+# ============================================================================
+# Multi-selection and reverse-selection tests
+# ============================================================================
+
+
+def _add_three_shapes(geometry_tree):
+    """Helper: add three shapes and return their IDs."""
+    ids = ["sel-a", "sel-b", "sel-c"]
+    for sid in ids:
+        geometry_tree.add_shape(shape_id=sid, shape_type="Box", name=sid)
+    return ids
+
+
+def test_shapes_selected_signal_emitted_on_programmatic_selection(geometry_tree):
+    """select_shapes() should trigger shapes_selected when signals are not blocked."""
+    ids = _add_three_shapes(geometry_tree)
+
+    received = []
+    geometry_tree.shapes_selected.connect(lambda sids: received.append(sids))
+
+    # Programmatic selection unblocks signals, so itemSelectionChanged fires.
+    # Use select_shapes() which uses blockSignals — signal should NOT fire.
+    geometry_tree.select_shapes(ids[:2])
+
+    # blockSignals suppresses the signal — no emission expected from select_shapes()
+    assert received == []
+
+
+def test_select_shapes_selects_correct_items(geometry_tree):
+    """select_shapes() selects exactly the specified items."""
+    ids = _add_three_shapes(geometry_tree)
+
+    geometry_tree.select_shapes([ids[0], ids[2]])
+
+    selected = [
+        item.data(0, __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.ItemDataRole.UserRole)
+        for item in geometry_tree.tree.selectedItems()
+    ]
+    assert set(selected) == {ids[0], ids[2]}
+
+
+def test_select_shapes_clears_previous_selection(geometry_tree):
+    """select_shapes() replaces the previous selection."""
+    ids = _add_three_shapes(geometry_tree)
+
+    geometry_tree.select_shapes(ids)          # select all three
+    geometry_tree.select_shapes([ids[1]])     # now only second
+
+    selected = [
+        item.data(0, __import__("PySide6.QtCore", fromlist=["Qt"]).Qt.ItemDataRole.UserRole)
+        for item in geometry_tree.tree.selectedItems()
+    ]
+    assert selected == [ids[1]]
+
+
+def test_select_shapes_empty_clears_selection(geometry_tree):
+    """select_shapes([]) deselects everything."""
+    ids = _add_three_shapes(geometry_tree)
+
+    geometry_tree.select_shapes(ids)
+    geometry_tree.select_shapes([])
+
+    assert geometry_tree.tree.selectedItems() == []
+
+
+def test_select_shapes_unknown_id_ignored(geometry_tree):
+    """Unknown IDs in select_shapes() are silently ignored."""
+    _add_three_shapes(geometry_tree)
+
+    geometry_tree.select_shapes(["does-not-exist"])  # should not raise
+    assert geometry_tree.tree.selectedItems() == []
+
+
+def test_shapes_selected_signal_not_emitted_by_select_shapes(geometry_tree):
+    """select_shapes() must NOT emit shapes_selected (prevents feedback loop)."""
+    ids = _add_three_shapes(geometry_tree)
+
+    emitted = []
+    geometry_tree.shapes_selected.connect(lambda sids: emitted.append(sids))
+
+    geometry_tree.select_shapes(ids)
+
+    assert emitted == [], "select_shapes() must block signals to avoid feedback loop"

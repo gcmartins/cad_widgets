@@ -557,6 +557,46 @@ class ViewService:
             return self._shapes[shape_id].visible
         return False
 
+    def select_shapes(self, shape_ids: list[str]):
+        """
+        Programmatically select multiple shapes by ID, replacing current selection.
+
+        Args:
+            shape_ids: List of shape IDs to select
+        """
+        try:
+            self._context.ClearSelected(False)
+            for shape_id in shape_ids:
+                if shape_id in self._shapes:
+                    self._context.AddOrRemoveSelected(self._shapes[shape_id].ais_shape, False)
+            self._context.UpdateCurrentViewer()
+        except Exception as e:
+            logger.error("Error selecting shapes: %s", e, exc_info=True)
+
+    def select_shape(self, shape_id: str):
+        """
+        Programmatically select a shape in the viewer by its ID.
+
+        Args:
+            shape_id: ID of the shape to select
+        """
+        self.select_shapes([shape_id])
+
+    def get_shape_id_for_ais_shape(self, ais_shape) -> Optional[str]:
+        """
+        Reverse-lookup: find the shape_id for a given AIS_Shape object.
+
+        Args:
+            ais_shape: AIS_Shape object to look up
+
+        Returns:
+            shape_id string or None if not found
+        """
+        for shape_id, info in self._shapes.items():
+            if info.ais_shape is ais_shape:
+                return shape_id
+        return None
+
     def get_shape_count(self) -> int:
         """
         Get the number of shapes currently managed.
