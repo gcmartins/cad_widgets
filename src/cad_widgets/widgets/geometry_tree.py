@@ -16,6 +16,7 @@ from PySide6.QtCore import Qt, Signal, QPoint
 from PySide6.QtGui import QAction
 
 from ..enums import ShapeType
+from ..managers.geometry_manager import VOLUME_SHAPE_TYPES
 
 
 class GeometryTreeWidget(QWidget):
@@ -52,6 +53,7 @@ class GeometryTreeWidget(QWidget):
     export_step_requested = Signal(str)  # shape_id
     export_iges_requested = Signal(str)  # shape_id
     import_requested = Signal()  # Unified import signal for STEP/IGES files
+    shape_split_to_faces_requested = Signal(str)  # shape_id
 
     def __init__(self, parent=None):
         """Initialize the geometry tree widget."""
@@ -327,14 +329,30 @@ class GeometryTreeWidget(QWidget):
             # Export menu (single shape only)
             if num_selected == 1:
                 export_menu = menu.addMenu("Export Shape")
-                
+
                 export_step_action = QAction("Export as STEP...", self)
                 export_step_action.triggered.connect(lambda: self.export_step_requested.emit(selected_shape_ids[0]))
                 export_menu.addAction(export_step_action)
-                
+
                 export_iges_action = QAction("Export as IGES...", self)
                 export_iges_action.triggered.connect(lambda: self.export_iges_requested.emit(selected_shape_ids[0]))
                 export_menu.addAction(export_iges_action)
+
+                # Split to Surfaces (volume shapes only)
+                selected_item = self.tree.selectedItems()[0]
+                if selected_item.parent() is None:
+                    shape_type_str = selected_item.text(1)
+                    try:
+                        selected_type = ShapeType(shape_type_str)
+                    except ValueError:
+                        selected_type = None
+                    if selected_type in VOLUME_SHAPE_TYPES:
+                        menu.addSeparator()
+                        split_action = QAction("Split to Surfaces", self)
+                        split_action.triggered.connect(
+                            lambda: self.shape_split_to_faces_requested.emit(selected_shape_ids[0])
+                        )
+                        menu.addAction(split_action)
         
         # Actions when clicking on empty space
         else:

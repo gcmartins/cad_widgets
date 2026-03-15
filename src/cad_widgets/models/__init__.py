@@ -15,5 +15,6 @@ from .shape_properties import (
     RectangleProperties,
     CircleProperties,
     ImportedProperties,
+    FaceProperties,
 )
 

@@ -15,6 +15,7 @@ from cad_widgets.models.shape_properties import (
     TorusProperties,
     RectangleProperties,
     CircleProperties,
+    FaceProperties,
     Translation,
     Rotation,
 )
@@ -890,7 +891,7 @@ def test_sequential_operations(geometry_manager):
         color=(1.0, 0.0, 0.0),
         properties=props1
     )
-    
+
     # Create second shape
     props2 = SphereProperties(radius=25.0)
     shape2 = geometry_manager.create_shape(
@@ -899,22 +900,163 @@ def test_sequential_operations(geometry_manager):
         color=(0.0, 1.0, 0.0),
         properties=props2
     )
-    
+
     # Verify both exist
     assert len(geometry_manager.get_all_shape_ids()) == 2
-    
+
     # Update first shape
     new_props = BoxProperties(width=100.0, height=100.0, depth=100.0)
     geometry_manager.update_shape(shape1.shape_id, new_props)
-    
+
     # Verify first shape updated
     updated_shape = geometry_manager.get_shape(shape1.shape_id)
     assert updated_shape.properties.width == 100.0
-    
+
     # Remove second shape
     geometry_manager.remove_shape(shape2.shape_id)
-    
+
     # Verify only one remains
     assert len(geometry_manager.get_all_shape_ids()) == 1
     assert shape1.shape_id in geometry_manager.get_all_shape_ids()
     assert shape2.shape_id not in geometry_manager.get_all_shape_ids()
+
+
+# --- split_to_faces tests ---
+
+def test_split_box_to_faces(geometry_manager):
+    """Box should split into 6 faces."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        properties=BoxProperties(width=50.0, height=50.0, depth=50.0),
+    )
+    face_ids = geometry_manager.split_to_faces(box.shape_id)
+    assert len(face_ids) == 6
+    for fid in face_ids:
+        face = geometry_manager.get_shape(fid)
+        assert face is not None
+        assert face.shape_type == ShapeType.FACE
+        assert face.parent_id is None
+
+
+def test_split_sphere_to_faces(geometry_manager):
+    """Sphere should split into at least one face."""
+    sphere = geometry_manager.create_shape(
+        shape_type=ShapeType.SPHERE,
+        properties=SphereProperties(radius=30.0),
+    )
+    face_ids = geometry_manager.split_to_faces(sphere.shape_id)
+    assert len(face_ids) >= 1
+    for fid in face_ids:
+        assert geometry_manager.get_shape(fid).shape_type == ShapeType.FACE
+
+
+def test_split_cylinder_to_faces(geometry_manager):
+    """Cylinder should split into 3 faces (top cap, bottom cap, lateral)."""
+    cyl = geometry_manager.create_shape(
+        shape_type=ShapeType.CYLINDER,
+        properties=CylinderProperties(radius=20.0, height=60.0),
+    )
+    face_ids = geometry_manager.split_to_faces(cyl.shape_id)
+    assert len(face_ids) == 3
+
+
+def test_split_face_names_convention(geometry_manager):
+    """Face names should follow <parent_name>_Face_<n> pattern."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        name="MyBox",
+        properties=BoxProperties(),
+    )
+    face_ids = geometry_manager.split_to_faces(box.shape_id)
+    names = [geometry_manager.get_shape(fid).name for fid in face_ids]
+    for i, name in enumerate(names, start=1):
+        assert name == f"MyBox_Face_{i}"
+
+
+def test_split_face_inherits_color(geometry_manager):
+    """All produced faces should inherit the parent's color."""
+    color = (1.0, 0.5, 0.0)
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        color=color,
+        properties=BoxProperties(),
+    )
+    face_ids = geometry_manager.split_to_faces(box.shape_id)
+    for fid in face_ids:
+        assert geometry_manager.get_shape(fid).color == color
+
+
+def test_split_removes_original(geometry_manager):
+    """Original solid should be removed after split."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        properties=BoxProperties(),
+    )
+    original_id = box.shape_id
+    geometry_manager.split_to_faces(original_id)
+    assert geometry_manager.get_shape(original_id) is None
+
+
+def test_split_emits_shape_removed(geometry_manager, qapp):
+    """shape_removed should fire once with the original shape_id."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        properties=BoxProperties(),
+    )
+    spy = QSignalSpy(geometry_manager.shape_removed)
+    geometry_manager.split_to_faces(box.shape_id)
+    qapp.processEvents()
+    assert spy.count() == 1
+    assert spy.at(0)[0] == box.shape_id
+
+
+def test_split_emits_shape_created_per_face(geometry_manager, qapp):
+    """shape_created should fire once per extracted face."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        properties=BoxProperties(),
+    )
+    spy = QSignalSpy(geometry_manager.shape_created)
+    face_ids = geometry_manager.split_to_faces(box.shape_id)
+    qapp.processEvents()
+    assert spy.count() == len(face_ids)
+
+
+def test_split_nonexistent_returns_empty(geometry_manager):
+    """split_to_faces on a bad ID should return an empty list."""
+    assert geometry_manager.split_to_faces("nonexistent_id") == []
+
+
+def test_split_surface_shape_returns_empty(geometry_manager):
+    """Calling split_to_faces on a surface shape should return empty list."""
+    rect = geometry_manager.create_shape(
+        shape_type=ShapeType.RECTANGLE,
+        properties=RectangleProperties(width=60.0, height=40.0),
+    )
+    assert geometry_manager.split_to_faces(rect.shape_id) == []
+
+
+def test_split_component_returns_empty(geometry_manager):
+    """Calling split_to_faces on a boolean component should return empty list."""
+    box1 = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX, properties=BoxProperties()
+    )
+    box2 = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX, properties=BoxProperties()
+    )
+    geometry_manager.union_shapes([box1.shape_id, box2.shape_id])
+    # The original boxes are now components with parent_id set
+    component = geometry_manager.get_shape(box1.shape_id)
+    assert component.parent_id is not None
+    assert geometry_manager.split_to_faces(box1.shape_id) == []
+
+
+def test_split_face_properties_type(geometry_manager):
+    """Each produced face should have FaceProperties."""
+    box = geometry_manager.create_shape(
+        shape_type=ShapeType.BOX,
+        properties=BoxProperties(),
+    )
+    face_ids = geometry_manager.split_to_faces(box.shape_id)
+    for fid in face_ids:
+        assert isinstance(geometry_manager.get_shape(fid).properties, FaceProperties)

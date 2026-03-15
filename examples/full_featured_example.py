@@ -166,6 +166,9 @@ class CADViewerWindow(QMainWindow):
         self.geometry_tree.import_requested.connect(
             self._on_import_requested
         )
+        self.geometry_tree.shape_split_to_faces_requested.connect(
+            self._on_shape_split_to_faces_requested
+        )
 
         # Connect property editor signals
         self.property_editor.properties_changed.connect(self._on_properties_changed)
@@ -297,6 +300,15 @@ class CADViewerWindow(QMainWindow):
             self.property_editor.clear_shape()
         else:
             print("Subtract operation failed")
+
+    def _on_shape_split_to_faces_requested(self, shape_id: str):
+        """Handle split-to-faces request from geometry tree."""
+        face_ids = self.geometry_manager.split_to_faces(shape_id)
+        if face_ids:
+            self.viewer.fit_all()
+            self.property_editor.clear_shape()
+        else:
+            print("Split to surfaces failed")
 
     def _on_export_step_requested(self, shape_id: str):
         """

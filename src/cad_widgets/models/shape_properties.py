@@ -176,3 +176,12 @@ class ImportedProperties(ShapeProperties):
     Imported shapes have no editable size parameters,
     only translation and rotation transformations.
     """
+
+
+@dataclass
+class FaceProperties(ShapeProperties):
+    """Properties for face shapes extracted from a solid.
+
+    Extracted faces have no editable size parameters,
+    only translation and rotation transformations.
+    """
