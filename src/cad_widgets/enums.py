@@ -52,3 +52,5 @@ class ShapeType(StrEnum):
     UNION = "union"
     SUBTRACTION = "subtraction"
     IMPORTED = "imported"
+    RECTANGLE = "rectangle"
+    CIRCLE = "circle"

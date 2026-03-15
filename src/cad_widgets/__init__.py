@@ -21,6 +21,8 @@ from .models import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    RectangleProperties,
+    CircleProperties,
     ImportedProperties,
 )
 

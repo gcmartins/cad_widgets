@@ -340,17 +340,27 @@ class GeometryTreeWidget(QWidget):
         else:
             # Create Shape submenu
             create_menu = menu.addMenu("Create Shape")
-            shapes = [
+
+            volume_menu = create_menu.addMenu("Volume Shapes")
+            for name, shape_type in [
                 ("Box", ShapeType.BOX),
                 ("Sphere", ShapeType.SPHERE),
                 ("Cylinder", ShapeType.CYLINDER),
                 ("Cone", ShapeType.CONE),
                 ("Torus", ShapeType.TORUS),
-            ]
-            for name, shape_type in shapes:
+            ]:
                 action = QAction(name, self)
                 action.triggered.connect(lambda _, st=shape_type: self.shape_creation_requested.emit(st))
-                create_menu.addAction(action)
+                volume_menu.addAction(action)
+
+            surface_menu = create_menu.addMenu("Surface Shapes")
+            for name, shape_type in [
+                ("Rectangle", ShapeType.RECTANGLE),
+                ("Circle", ShapeType.CIRCLE),
+            ]:
+                action = QAction(name, self)
+                action.triggered.connect(lambda _, st=shape_type: self.shape_creation_requested.emit(st))
+                surface_menu.addAction(action)
             
             # Import action
             import_action = QAction("Import CAD File...", self)

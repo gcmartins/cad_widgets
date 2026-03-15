@@ -13,6 +13,8 @@ from cad_widgets.models.shape_properties import (
     CylinderProperties,
     ConeProperties,
     TorusProperties,
+    RectangleProperties,
+    CircleProperties,
     Translation,
     Rotation,
 )
@@ -161,6 +163,219 @@ def test_create_torus_shape(geometry_manager, qapp):
     assert retrieved_shape is not None
     assert retrieved_shape.shape_type == ShapeType.TORUS
     assert isinstance(retrieved_shape.properties, TorusProperties)
+
+
+def test_create_rectangle_shape(geometry_manager, qapp):
+    """Test creating a rectangle surface shape."""
+    properties = RectangleProperties(
+        width=80.0,
+        height=50.0,
+        translation=Translation(x=0.0, y=0.0, z=0.0),
+        rotation=Rotation(x=0.0, y=0.0, z=0.0),
+    )
+
+    spy = QSignalSpy(geometry_manager.shape_created)
+
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.RECTANGLE,
+        name="Test Rectangle",
+        color=(0.2, 0.8, 0.8),
+        properties=properties,
+    )
+
+    qapp.processEvents()
+
+    assert managed_shape is not None
+    assert spy.count() == 1
+
+    retrieved = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved is not None
+    assert retrieved.shape_type == ShapeType.RECTANGLE
+    assert retrieved.name == "Test Rectangle"
+    assert retrieved.color == (0.2, 0.8, 0.8)
+    assert isinstance(retrieved.properties, RectangleProperties)
+    assert retrieved.properties.width == 80.0
+    assert retrieved.properties.height == 50.0
+
+
+def test_create_circle_shape(geometry_manager, qapp):
+    """Test creating a circle surface shape."""
+    properties = CircleProperties(
+        radius=35.0,
+        translation=Translation(x=0.0, y=0.0, z=0.0),
+        rotation=Rotation(x=0.0, y=0.0, z=0.0),
+    )
+
+    spy = QSignalSpy(geometry_manager.shape_created)
+
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.CIRCLE,
+        name="Test Circle",
+        color=(0.9, 0.5, 0.1),
+        properties=properties,
+    )
+
+    qapp.processEvents()
+
+    assert managed_shape is not None
+    assert spy.count() == 1
+
+    retrieved = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved is not None
+    assert retrieved.shape_type == ShapeType.CIRCLE
+    assert retrieved.name == "Test Circle"
+    assert isinstance(retrieved.properties, CircleProperties)
+    assert retrieved.properties.radius == 35.0
+
+
+def test_update_rectangle_shape(geometry_manager, qapp):
+    """Test updating a rectangle surface shape's dimensions."""
+    properties = RectangleProperties(width=60.0, height=40.0)
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.RECTANGLE,
+        name="Rectangle",
+        color=(0.2, 0.8, 0.8),
+        properties=properties,
+    )
+    shape_id = managed_shape.shape_id
+
+    spy = QSignalSpy(geometry_manager.shape_updated)
+    new_properties = RectangleProperties(width=120.0, height=90.0)
+    updated = geometry_manager.update_shape(shape_id, new_properties)
+
+    qapp.processEvents()
+
+    assert updated is not None
+    assert spy.count() == 1
+    retrieved = geometry_manager.get_shape(shape_id)
+    assert retrieved.properties.width == 120.0
+    assert retrieved.properties.height == 90.0
+
+
+def test_update_circle_shape(geometry_manager, qapp):
+    """Test updating a circle surface shape's radius."""
+    properties = CircleProperties(radius=30.0)
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.CIRCLE,
+        name="Circle",
+        color=(0.9, 0.5, 0.1),
+        properties=properties,
+    )
+    shape_id = managed_shape.shape_id
+
+    spy = QSignalSpy(geometry_manager.shape_updated)
+    new_properties = CircleProperties(radius=55.0)
+    updated = geometry_manager.update_shape(shape_id, new_properties)
+
+    qapp.processEvents()
+
+    assert updated is not None
+    assert spy.count() == 1
+    retrieved = geometry_manager.get_shape(shape_id)
+    assert retrieved.properties.radius == 55.0
+
+
+def test_rectangle_with_translation(geometry_manager):
+    """Test creating a rectangle with a translation offset."""
+    properties = RectangleProperties(
+        width=80.0,
+        height=50.0,
+        translation=Translation(x=10.0, y=20.0, z=5.0),
+    )
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.RECTANGLE,
+        name="Translated Rectangle",
+        color=(0.2, 0.8, 0.8),
+        properties=properties,
+    )
+
+    assert managed_shape is not None
+    retrieved = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved.properties.translation.x == 10.0
+    assert retrieved.properties.translation.y == 20.0
+    assert retrieved.properties.translation.z == 5.0
+
+
+def test_circle_with_rotation(geometry_manager):
+    """Test creating a circle with a rotation applied."""
+    properties = CircleProperties(
+        radius=35.0,
+        rotation=Rotation(x=90.0, y=0.0, z=0.0),
+    )
+    managed_shape = geometry_manager.create_shape(
+        shape_type=ShapeType.CIRCLE,
+        name="Rotated Circle",
+        color=(0.9, 0.5, 0.1),
+        properties=properties,
+    )
+
+    assert managed_shape is not None
+    retrieved = geometry_manager.get_shape(managed_shape.shape_id)
+    assert retrieved.properties.rotation.x == 90.0
+
+
+def test_create_properties_for_type_rectangle():
+    """Test factory method for RectangleProperties."""
+    properties = GeometryManager.create_properties_for_type(
+        ShapeType.RECTANGLE,
+        width=100.0,
+        height=60.0,
+    )
+
+    assert isinstance(properties, RectangleProperties)
+    assert properties.width == 100.0
+    assert properties.height == 60.0
+
+
+def test_create_properties_for_type_circle():
+    """Test factory method for CircleProperties."""
+    properties = GeometryManager.create_properties_for_type(
+        ShapeType.CIRCLE,
+        radius=45.0,
+    )
+
+    assert isinstance(properties, CircleProperties)
+    assert properties.radius == 45.0
+
+
+def test_properties_from_dict_rectangle():
+    """Test creating RectangleProperties from a dictionary."""
+    data = {
+        "width": 80.0,
+        "height": 50.0,
+        "translation": {"x": 0.0, "y": 0.0, "z": 0.0},
+        "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
+    }
+
+    properties = GeometryManager.properties_from_dict(ShapeType.RECTANGLE, data)
+
+    assert isinstance(properties, RectangleProperties)
+    assert properties.width == 80.0
+    assert properties.height == 50.0
+
+
+def test_properties_from_dict_circle():
+    """Test creating CircleProperties from a dictionary."""
+    data = {
+        "radius": 35.0,
+        "translation": {"x": 5.0, "y": 0.0, "z": 0.0},
+        "rotation": {"x": 0.0, "y": 0.0, "z": 0.0},
+    }
+
+    properties = GeometryManager.properties_from_dict(ShapeType.CIRCLE, data)
+
+    assert isinstance(properties, CircleProperties)
+    assert properties.radius == 35.0
+    assert properties.translation.x == 5.0
+
+
+def test_surface_shapes_type_mismatch_returns_none(geometry_manager):
+    """Test that a type/properties mismatch returns None without raising."""
+    result = geometry_manager.create_shape(
+        shape_type=ShapeType.RECTANGLE,
+        properties=BoxProperties(width=10.0, height=10.0, depth=10.0),
+    )
+    assert result is None
 
 
 def test_update_shape(geometry_manager, qapp):

@@ -85,6 +85,20 @@ def test_translate_shape():
     assert translated is not box
 
 
+def test_create_rectangle_basic():
+    """Test basic rectangle surface creation."""
+    geo = GeometryService()
+    rect = geo.create_rectangle(80.0, 50.0)
+    assert rect is not None
+
+
+def test_create_circle_basic():
+    """Test basic circle surface creation."""
+    geo = GeometryService()
+    circle = geo.create_circle(35.0)
+    assert circle is not None
+
+
 def test_multiple_shape_types():
     """Test creating multiple different shape types."""
     geo = GeometryService()
@@ -94,6 +108,8 @@ def test_multiple_shape_types():
         geo.create_cylinder(25, 100),
         geo.create_cone(50, 25, 100),
         geo.create_torus(50, 15),
+        geo.create_rectangle(80, 50),
+        geo.create_circle(35),
     ]
 
     # All shapes should be created successfully
