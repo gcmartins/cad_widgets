@@ -22,11 +22,23 @@ from ..models.shape_properties import (
     RectangleProperties,
     CircleProperties,
     ImportedProperties,
+    FaceProperties,
     Translation,
     Rotation
 )
 
 DEFAULT_SHAPE_COLOR = (0.7, 0.75, 0.8)
+
+VOLUME_SHAPE_TYPES: frozenset = frozenset({
+    ShapeType.BOX,
+    ShapeType.SPHERE,
+    ShapeType.CYLINDER,
+    ShapeType.CONE,
+    ShapeType.TORUS,
+    ShapeType.UNION,
+    ShapeType.SUBTRACTION,
+    ShapeType.IMPORTED,
+})
 
 
 @dataclass
@@ -229,8 +241,8 @@ class GeometryManager(QObject):
             self.shape_updated.emit(shape_id, managed_shape)
             return new_shape
 
-        # Case 3: IMPORTED – swap transforms
-        if managed_shape.shape_type == ShapeType.IMPORTED:
+        # Case 3: IMPORTED/FACE – swap transforms
+        if managed_shape.shape_type in [ShapeType.IMPORTED, ShapeType.FACE]:
             new_shape = self._update_transformed_shape(managed_shape, properties)
             if new_shape:
                 managed_shape.shape = new_shape
@@ -552,6 +564,56 @@ class GeometryManager(QObject):
 
         return new_shape_id
 
+    def split_to_faces(self, shape_id: str) -> list[str]:
+        """Decompose a solid shape into its individual face surfaces.
+
+        The original solid is removed and each face becomes a new independent
+        top-level ManagedShape with type FACE.
+
+        Args:
+            shape_id: ID of the solid shape to split
+
+        Returns:
+            List of new shape IDs (one per face), or empty list on failure.
+        """
+        managed_shape = self._shapes.get(shape_id)
+        if managed_shape is None:
+            return []
+        if managed_shape.parent_id is not None:
+            return []
+        if managed_shape.shape_type not in VOLUME_SHAPE_TYPES:
+            return []
+
+        faces = self._geo_service.explode_to_faces(managed_shape.shape)
+        if not faces:
+            return []
+
+        parent_name = managed_shape.name
+        parent_color = managed_shape.color
+
+        # Remove original solid (purge components silently, then signal removal)
+        self._remove_component_subtree(managed_shape)
+        del self._shapes[shape_id]
+        self.shape_removed.emit(shape_id)
+
+        # Register each face as a new top-level shape
+        new_ids: list[str] = []
+        for index, face_shape in enumerate(faces, start=1):
+            face_id = self._new_shape_id(ShapeType.FACE)
+            face_managed = ManagedShape(
+                shape_id=face_id,
+                shape=face_shape,
+                shape_type=ShapeType.FACE,
+                name=f"{parent_name}_Face_{index}",
+                color=parent_color,
+                properties=FaceProperties(),
+            )
+            self._shapes[face_id] = face_managed
+            self.shape_created.emit(face_id, face_managed)
+            new_ids.append(face_id)
+
+        return new_ids
+
     def _apply_transformations(
         self,
         shape: Any,
@@ -635,6 +697,9 @@ class GeometryManager(QObject):
             # For imported shapes, no base shape is created
             # The shape is already provided externally
             return None
+        elif shape_type == ShapeType.FACE and isinstance(properties, FaceProperties):
+            # Face shapes are externally provided (extracted from a solid)
+            return None
         else:
             return None
 
@@ -652,6 +717,7 @@ class GeometryManager(QObject):
         ShapeType.RECTANGLE: RectangleProperties,
         ShapeType.CIRCLE: CircleProperties,
         ShapeType.IMPORTED: ImportedProperties,
+        ShapeType.FACE: FaceProperties,
     }
 
     @staticmethod

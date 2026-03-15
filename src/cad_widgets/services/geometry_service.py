@@ -18,7 +18,10 @@ from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_MakeFace,
     BRepBuilderAPI_MakeEdge,
     BRepBuilderAPI_MakeWire,
+    BRepBuilderAPI_Copy,
 )
+from OCP.TopExp import TopExp_Explorer
+from OCP.TopAbs import TopAbs_FACE
 from OCP.gp import gp_Pnt, gp_Ax2, gp_Ax3, gp_Dir, gp_Trsf, gp_Vec, gp_Pln, gp_Circ
 from OCP.TopoDS import TopoDS_Shape
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Fuse, BRepAlgoAPI_Cut, BRepAlgoAPI_Common
@@ -52,6 +55,7 @@ class GeometryServiceProtocol(Protocol):
     def import_file(self, filename: str) -> Optional["TopoDS_Shape"]: ...
     def export_shapes_to_step(self, shapes: list, filename: str) -> bool: ...
     def export_shapes_to_iges(self, shapes: list, filename: str) -> bool: ...
+    def explode_to_faces(self, shape: "TopoDS_Shape") -> "list[TopoDS_Shape]": ...
 
 
 class GeometryService:
@@ -351,6 +355,27 @@ class GeometryService:
         except Exception as e:
             logger.error("Error intersecting shapes: %s", e, exc_info=True)
         return None
+
+    @staticmethod
+    def explode_to_faces(shape: TopoDS_Shape) -> list[TopoDS_Shape]:
+        """Extract individual face surfaces from a solid shape.
+
+        Args:
+            shape: A TopoDS_Shape (typically a solid or compound)
+
+        Returns:
+            List of independent TopoDS_Shape faces. Empty if shape has no faces.
+        """
+        faces: list[TopoDS_Shape] = []
+        try:
+            explorer = TopExp_Explorer(shape, TopAbs_FACE)
+            while explorer.More():
+                face_copy = BRepBuilderAPI_Copy(explorer.Current()).Shape()
+                faces.append(face_copy)
+                explorer.Next()
+        except Exception as e:
+            logger.error("Error exploding shape to faces: %s", e, exc_info=True)
+        return faces
 
     @staticmethod
     def export_step(shape: TopoDS_Shape, filename: str) -> bool:

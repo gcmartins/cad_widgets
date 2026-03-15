@@ -54,3 +54,4 @@ class ShapeType(StrEnum):
     IMPORTED = "imported"
     RECTANGLE = "rectangle"
     CIRCLE = "circle"
+    FACE = "face"

@@ -24,6 +24,7 @@ from .models import (
     RectangleProperties,
     CircleProperties,
     ImportedProperties,
+    FaceProperties,
 )
 
 __version__ = "0.1.0"
